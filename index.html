@@ -2,108 +2,551 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AI English Master">
+    <meta name="theme-color" content="#667eea">
     <title>AI English Master</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #667eea; overflow-x: hidden; }
+        #root { width: 100%; min-height: 100vh; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.7)} 50%{box-shadow:0 0 0 10px rgba(239,68,68,0)} }
+        .dot { animation: bounce 1.4s infinite ease-in-out both; }
+        .dot:nth-child(1){animation-delay:-0.32s}
+        .dot:nth-child(2){animation-delay:-0.16s}
+        .msg-animate { animation: slideIn 0.3s ease; }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel">
-        // Complete working app will load here
-        const App = () => {
-            return (
-                <div style={{
-                    minHeight: '100vh',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px',
-                    fontFamily: 'system-ui, sans-serif'
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '30px',
-                        padding: '60px 40px',
-                        textAlign: 'center',
-                        maxWidth: '600px',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
-                    }}>
-                        <h1 style={{
-                            fontSize: '48px',
-                            background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            marginBottom: '20px'
-                        }}>
-                            ✨ AI English Master
-                        </h1>
-                        <p style={{ fontSize: '20px', color: '#6b7280', marginBottom: '30px' }}>
-                            AI 互動式英語學習平台
-                        </p>
-                        <div style={{
-                            background: '#f3f4f6',
-                            borderRadius: '15px',
-                            padding: '30px',
-                            marginBottom: '30px',
-                            textAlign: 'left'
-                        }}>
-                            <h3 style={{ marginBottom: '15px', color: '#1f2937' }}>✅ 部署成功！</h3>
-                            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-                                這是一個測試頁面。完整的應用程式已經在 Claude 聊天界面中運行。
-                            </p>
-                            <br/>
-                            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-                                由於完整應用需要更複雜的設置，請：
-                            </p>
-                            <ul style={{ color: '#6b7280', lineHeight: '1.8', marginTop: '10px' }}>
-                                <li>在 Claude 聊天界面中使用完整版本</li>
-                                <li>或查看下方的快速部署選項</li>
-                            </ul>
-                        </div>
-                        <div style={{
-                            display: 'grid',
-                            gap: '15px'
-                        }}>
-                            <a href="https://github.com" style={{
-                                display: 'block',
-                                background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                                color: 'white',
-                                padding: '15px 30px',
-                                borderRadius: '15px',
-                                textDecoration: 'none',
-                                fontWeight: '600'
-                            }}>
-                                📦 GitHub 部署教學
-                            </a>
-                            <a href="https://codesandbox.io" style={{
-                                display: 'block',
-                                background: '#10b981',
-                                color: 'white',
-                                padding: '15px 30px',
-                                borderRadius: '15px',
-                                textDecoration: 'none',
-                                fontWeight: '600'
-                            }}>
-                                🚀 CodeSandbox 快速測試
-                            </a>
-                        </div>
-                        <p style={{ 
-                            marginTop: '30px', 
-                            fontSize: '14px', 
-                            color: '#9ca3af' 
-                        }}>
-                            網址測試成功 ✓ | 可在手機 Safari 加入主畫面
-                        </p>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const Ico = ({d, size=24, style={}}) => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+    style={{width:size,height:size,display:'inline-block',flexShrink:0,...style}}>
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d}/>
+  </svg>
+);
+const Icons = {
+  Sparkles: p => <Ico d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" {...p}/>,
+  Trophy:   p => <Ico d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" {...p}/>,
+  Star:     p => <Ico d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" {...p}/>,
+  Chat:     p => <Ico d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" {...p}/>,
+  Mic:      p => <Ico d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" {...p}/>,
+  Book:     p => <Ico d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" {...p}/>,
+  Ear:      p => <Ico d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" {...p}/>,
+  Zap:      p => <Ico d="M13 10V3L4 14h7v7l9-11h-7z" {...p}/>,
+  Arrow:    p => <Ico d="M9 5l7 7-7 7" {...p}/>,
+  Award:    p => <Ico d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
+  Sound:    p => <Ico d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" {...p}/>,
+  Check:    p => <Ico d="M5 13l4 4L19 7" {...p}/>,
+  X:        p => <Ico d="M6 18L18 6M6 6l12 12" {...p}/>,
+  Trend:    p => <Ico d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" {...p}/>,
+  Globe:    p => <Ico d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
+  Film:     p => <Ico d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" {...p}/>,
+  News:     p => <Ico d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" {...p}/>,
+  Lock:     p => <Ico d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" {...p}/>,
+};
+
+const LESSONS = {
+  beginner: {
+    title:'基礎入門', color:'#10b981', emoji:'🌱',
+    lessons:[
+      {id:'b1',title:'日常問候',xp:50,topics:['Hello','Good morning','How are you'],type:'conversation'},
+      {id:'b2',title:'自我介紹',xp:75,topics:['My name is','I am from','I work as'],type:'conversation'},
+      {id:'b3',title:'數字與時間',xp:60,topics:['Numbers 1-100','Telling time','Days of week'],type:'vocabulary'},
+      {id:'b4',title:'購物基礎',xp:80,topics:['How much','I want to buy','Shopping phrases'],type:'conversation'},
+      {id:'b5',title:'餐廳點餐',xp:90,topics:['Menu items','Ordering food','Restaurant etiquette'],type:'conversation'},
+    ]
+  },
+  intermediate: {
+    title:'中級進階', color:'#3b82f6', emoji:'📈',
+    lessons:[
+      {id:'i1',title:'旅遊英文',xp:100,topics:['Directions','Hotel check-in','Airport phrases'],type:'conversation'},
+      {id:'i2',title:'職場溝通',xp:120,topics:['Email writing','Meeting phrases','Professional vocabulary'],type:'conversation'},
+      {id:'i3',title:'時事討論',xp:110,topics:['Current events','Expressing opinions','Debate skills'],type:'news'},
+      {id:'i4',title:'電話溝通',xp:100,topics:['Phone etiquette','Making appointments','Business calls'],type:'conversation'},
+      {id:'i5',title:'影視對話',xp:130,topics:['Movie quotes','TV show dialogues','Slang and idioms'],type:'media'},
+    ]
+  },
+  advanced: {
+    title:'高級精通', color:'#8b5cf6', emoji:'🔥',
+    lessons:[
+      {id:'a1',title:'學術討論',xp:150,topics:['Academic vocabulary','Presentations','Research discussions'],type:'conversation'},
+      {id:'a2',title:'商務談判',xp:180,topics:['Negotiation skills','Business strategy','Contract terms'],type:'conversation'},
+      {id:'a3',title:'文學賞析',xp:160,topics:['Literary devices','Classic literature','Poetry analysis'],type:'reading'},
+      {id:'a4',title:'新聞深度分析',xp:170,topics:['News analysis','Critical thinking','Media literacy'],type:'news'},
+      {id:'a5',title:'跨文化交流',xp:200,topics:['Cultural nuances','International etiquette','Global communication'],type:'conversation'},
+    ]
+  },
+  expert: {
+    title:'專業大師', color:'#f59e0b', emoji:'👑',
+    lessons:[
+      {id:'e1',title:'同步口譯訓練',xp:250,topics:['Real-time interpretation','Speed listening','Translation skills'],type:'listening'},
+      {id:'e2',title:'演講技巧',xp:300,topics:['Public speaking','TED-style presentations','Storytelling'],type:'pronunciation'},
+      {id:'e3',title:'專業寫作',xp:280,topics:['Academic writing','Creative writing','Technical documentation'],type:'writing'},
+      {id:'e4',title:'辯論大師',xp:320,topics:['Debate strategies','Rhetorical devices','Argumentation'],type:'conversation'},
+      {id:'e5',title:'全球時事評論',xp:350,topics:['World affairs','Political discourse','Economic analysis'],type:'news'},
+    ]
+  }
+};
+
+const PRACTICE_SENTENCES = [
+  {en:"Hello, how are you today?", zh:"日常問候"},
+  {en:"I would like to order a coffee, please.", zh:"點餐用語"},
+  {en:"Could you help me find the nearest train station?", zh:"問路"},
+  {en:"I'm sorry, I didn't quite catch that. Could you repeat it?", zh:"請求重複"},
+  {en:"Thank you very much for your help.", zh:"表達感謝"},
+  {en:"I've been studying English for two years.", zh:"自我介紹"},
+  {en:"What do you think about the current economic situation?", zh:"時事討論"},
+  {en:"I completely agree with your point of view.", zh:"表達同意"},
+];
+
+function typeIcon(type) {
+  const map = {conversation:<Icons.Chat/>,vocabulary:<Icons.Book/>,listening:<Icons.Ear/>,
+    pronunciation:<Icons.Mic/>,news:<Icons.News/>,media:<Icons.Film/>,
+    reading:<Icons.Globe/>,writing:<Icons.Book/>};
+  return map[type] || <Icons.Book/>;
+}
+
+const App = () => {
+  const [view,  setView]  = useState('home');
+  const [profile, setProfile] = useState({
+    level:1, totalXP:0, streak:7, completedLessons:[]
+  });
+  const [lesson,  setLesson]  = useState(null);
+  const [msgs,    setMsgs]    = useState([]);
+  const [input,   setInput]   = useState('');
+  const [busy,    setBusy]    = useState(false);
+  const [recoding,setRecoding]= useState(false);
+  const [spFB,    setSpFB]    = useState(null);
+  const [practiceIdx, setPracticeIdx] = useState(0);
+  const msgEnd = useRef(null);
+
+  useEffect(()=>{
+    const s = localStorage.getItem('eng_profile');
+    if(s) try{ setProfile(JSON.parse(s)); }catch(e){}
+  },[]);
+
+  useEffect(()=>{ localStorage.setItem('eng_profile', JSON.stringify(profile)); },[profile]);
+  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:'smooth'}); },[msgs]);
+
+  const xpForLevel = l => l * 500;
+  const progress = () => {
+    const lo = xpForLevel(profile.level-1), hi = xpForLevel(profile.level);
+    return Math.min(((profile.totalXP-lo)/(hi-lo))*100, 100);
+  };
+
+  const addXP = amt => {
+    setProfile(p=>{
+      const nx = p.totalXP + amt;
+      let nl = p.level;
+      while(nx >= xpForLevel(nl)) nl++;
+      if(nl > p.level) setTimeout(()=>alert(`🎉 Level Up！恭喜升到 Level ${nl}！`),300);
+      return {...p, totalXP:nx, level:nl};
+    });
+  };
+
+  const finishLesson = (id, xp) => {
+    if(!profile.completedLessons.includes(id)){
+      setProfile(p=>({...p, completedLessons:[...p.completedLessons,id], streak:p.streak+1}));
+      addXP(xp);
+      alert(`🎊 課程完成！+${xp} XP！繼續加油！`);
+    }
+    setView('home');
+  };
+
+  const sendAI = async (msg, ctx) => {
+    setBusy(true);
+    setMsgs(m=>[...m,{role:'user',content:msg}]);
+    try {
+      const sys = ctx
+        ? `You are a friendly English teacher. The student is learning "${ctx.title}" (topics: ${ctx.topics.join(', ')}). 
+           Speak naturally, gently correct mistakes, give encouragement. 
+           Use a mix of English and Traditional Chinese (繁體中文) for explanations.
+           Keep replies concise (2-4 sentences), engaging, and conversational.`
+        : `You are a friendly English conversation partner. 
+           Help the user practice natural English conversation. 
+           Mix English with Traditional Chinese (繁體中文) explanations when helpful.
+           Keep replies natural and encouraging.`;
+      const res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:800,
+          system: sys,
+          messages:[...msgs,{role:'user',content:msg}]
+        })
+      });
+      const d = await res.json();
+      setMsgs(m=>[...m,{role:'assistant',content:d.content[0].text}]);
+      addXP(10);
+    } catch(e) {
+      setMsgs(m=>[...m,{role:'assistant',content:'抱歉，連線出錯了。請檢查網路後再試！(API connection error)'}]);
+    }
+    setBusy(false);
+  };
+
+  const speak = txt => {
+    const u = new SpeechSynthesisUtterance(txt.replace(/[\u4e00-\u9fa5\u3000-\u303f]/g,''));
+    u.lang='en-US'; u.rate=0.85;
+    window.speechSynthesis.speak(u);
+  };
+
+  const startRec = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ alert('請用 Chrome 或 Safari 瀏覽器使用語音功能'); return; }
+    const r = new SR();
+    r.lang='en-US'; r.continuous=false; r.interimResults=false;
+    r.onstart = ()=>{ setRecoding(true); setSpFB(null); };
+    r.onresult = e => {
+      const t=e.results[0][0].transcript, c=e.results[0][0].confidence;
+      setInput(t);
+      setSpFB({text:t, score:Math.round(c*100)});
+      if(c>0.7) addXP(15);
+    };
+    r.onerror = ()=>setRecoding(false);
+    r.onend   = ()=>setRecoding(false);
+    r.start();
+  };
+
+  const openLesson = (ls, tier) => {
+    setLesson({...ls, tier});
+    setMsgs([{role:'assistant',
+      content:`Hi there! 👋 Let's practice **${ls.title}**!\n\n今天我們來練習「${ls.title}」！\n\n📚 Topics: ${ls.topics.join(' · ')}\n\n試著用英文跟我說話吧！你可以問問題，或是直接開始對話。Let's go! 🚀`}]);
+    setSpFB(null);
+    setInput('');
+    setView('lesson');
+  };
+
+  /* ---- HOME ---- */
+  const Home = () => (
+    <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'20px'}}>
+      <div style={{maxWidth:'900px',margin:'0 auto'}}>
+
+        {/* Hero */}
+        <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'28px',padding:'50px 30px',textAlign:'center',marginBottom:'24px',boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
+          <div style={{fontSize:'52px',animation:'float 3s ease-in-out infinite'}}>✨</div>
+          <h1 style={{fontSize:'clamp(32px,6vw,52px)',fontWeight:900,background:'linear-gradient(135deg,#667eea,#764ba2)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',margin:'12px 0 8px'}}>AI English Master</h1>
+          <p style={{fontSize:'18px',color:'#6b7280',marginBottom:'24px'}}>AI 互動式英語學習平台</p>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'10px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',padding:'12px 28px',borderRadius:'50px',fontWeight:700,fontSize:'18px',boxShadow:'0 8px 24px rgba(245,158,11,0.35)'}}>
+            <Icons.Trophy size={22}/> Level {profile.level}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px',marginBottom:'24px'}}>
+          {[
+            {icon:<Icons.Zap size={30} style={{color:'#f59e0b'}}/>,  val:profile.totalXP, lbl:'Total XP'},
+            {icon:<Icons.Star size={30} style={{color:'#ef4444'}}/>,  val:profile.streak,  lbl:'🔥 連續天數'},
+            {icon:<Icons.Award size={30} style={{color:'#10b981'}}/>, val:profile.completedLessons.length, lbl:'完成關卡'},
+          ].map((s,i)=>(
+            <div key={i} style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',padding:'24px 16px',textAlign:'center',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
+              {s.icon}
+              <div style={{fontSize:'32px',fontWeight:800,color:'#1f2937',marginTop:'8px'}}>{s.val}</div>
+              <div style={{fontSize:'13px',color:'#6b7280',marginTop:'4px'}}>{s.lbl}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* XP Bar */}
+        <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'18px',padding:'20px 24px',marginBottom:'28px',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontWeight:600,marginBottom:'8px',color:'#1f2937'}}>
+            <span>Level {profile.level} → {profile.level+1}</span>
+            <span>{Math.round(progress())}%</span>
+          </div>
+          <div style={{height:'18px',background:'#e5e7eb',borderRadius:'9px',overflow:'hidden'}}>
+            <div style={{height:'100%',width:`${progress()}%`,background:'linear-gradient(90deg,#10b981,#059669)',transition:'width 0.6s ease',boxShadow:'0 0 12px rgba(16,185,129,0.5)'}}/>
+          </div>
+          <div style={{textAlign:'right',fontSize:'13px',color:'#9ca3af',marginTop:'6px'}}>下一級需要 {xpForLevel(profile.level)} XP</div>
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'28px'}}>
+          <button onClick={()=>{setMsgs([]);setSpFB(null);setInput('');setView('freeChat');}}
+            style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',borderRadius:'18px',padding:'20px',fontSize:'16px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',boxShadow:'0 8px 24px rgba(102,126,234,0.4)'}}>
+            <Icons.Chat size={22}/> 自由對話練習
+          </button>
+          <button onClick={()=>{setSpFB(null);setView('pronunciation');}}
+            style={{background:'rgba(255,255,255,0.96)',border:'2px solid #e5e7eb',borderRadius:'18px',padding:'20px',fontSize:'16px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',color:'#1f2937',boxShadow:'0 8px 24px rgba(0,0,0,0.08)'}}>
+            <Icons.Mic size={22}/> 發音測試
+          </button>
+        </div>
+
+        {/* Learning Path */}
+        <h2 style={{display:'flex',alignItems:'center',gap:'12px',fontSize:'26px',fontWeight:800,color:'white',marginBottom:'20px'}}>
+          <Icons.Trend size={26}/> 學習路徑
+        </h2>
+
+        {Object.entries(LESSONS).map(([key,path])=>(
+          <div key={key} style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',overflow:'hidden',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.1)'}}>
+            <div style={{background:path.color,padding:'18px 24px',color:'white'}}>
+              <h3 style={{fontWeight:800,fontSize:'20px',margin:0}}>{path.emoji} {path.title}</h3>
+            </div>
+            <div style={{padding:'20px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:'12px'}}>
+              {path.lessons.map((ls,idx)=>{
+                const done   = profile.completedLessons.includes(ls.id);
+                const prevId = idx>0 ? path.lessons[idx-1].id : null;
+                const locked = prevId && !profile.completedLessons.includes(prevId);
+                return (
+                  <div key={ls.id} onClick={()=>!locked && openLesson(ls,key)}
+                    style={{
+                      background: done ? 'linear-gradient(135deg,#d1fae5,#a7f3d0)' : 'white',
+                      border: `2px solid ${done ? '#10b981' : locked ? '#e5e7eb' : '#e5e7eb'}`,
+                      borderRadius:'14px',padding:'16px',
+                      cursor: locked ? 'not-allowed' : 'pointer',
+                      opacity: locked ? 0.5 : 1,
+                      display:'flex',alignItems:'center',gap:'12px',
+                      transition:'all 0.2s ease',
+                    }}
+                    onMouseEnter={e=>{ if(!locked) e.currentTarget.style.transform='translateY(-3px)'; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; }}
+                  >
+                    <div style={{width:'44px',height:'44px',background: locked ? '#9ca3af' : `linear-gradient(135deg,${path.color},${path.color}aa)`,borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}>
+                      {locked ? <Icons.Lock size={20}/> : typeIcon(ls.type)}
                     </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:'15px',color:'#1f2937',marginBottom:'4px'}}>{ls.title}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:'4px',color:'#f59e0b',fontWeight:600,fontSize:'13px'}}>
+                        <Icons.Zap size={13}/>{ls.xp} XP
+                      </div>
+                    </div>
+                    {done && <div style={{width:'28px',height:'28px',background:'#10b981',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}><Icons.Check size={16}/></div>}
+                    {!done && !locked && <Icons.Arrow size={18} style={{color:'#9ca3af',flexShrink:0}}/>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  /* ---- CHAT SHARED ---- */
+  const ChatView = ({title, subtitle, onBack, onComplete, ctx}) => (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f3f4f6'}}>
+      {/* Header */}
+      <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',padding:'16px 20px',display:'flex',alignItems:'center',gap:'14px',flexWrap:'wrap',gap:'10px',flexShrink:0}}>
+        <button onClick={onBack}
+          style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',color:'white',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontWeight:600,fontSize:'14px'}}>
+          ← 返回
+        </button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:'18px'}}>{title}</div>
+          {subtitle && <div style={{fontSize:'13px',opacity:0.85,marginTop:'2px'}}>{subtitle}</div>}
+        </div>
+        {onComplete && (
+          <button onClick={onComplete}
+            style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',color:'white',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontWeight:600,fontSize:'14px'}}>
+            ✅ 完成課程
+          </button>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div style={{flex:1,overflowY:'auto',padding:'20px',display:'flex',flexDirection:'column',gap:'16px'}}>
+        {msgs.length===0 && (
+          <div style={{alignSelf:'flex-start',maxWidth:'80%'}}>
+            <div style={{background:'white',padding:'16px 20px',borderRadius:'20px 20px 20px 4px',boxShadow:'0 2px 10px rgba(0,0,0,0.08)',lineHeight:1.6,whiteSpace:'pre-wrap',position:'relative'}}>
+              Hi! I'm your AI English partner 🤖<br/>你好！我是你的 AI 英語夥伴！<br/><br/>試著用英文跟我說話吧～
+              <button onClick={()=>speak("Hi! I'm your AI English partner. Let's practice English together!")}
+                style={{position:'absolute',top:'8px',right:'8px',background:'rgba(102,126,234,0.1)',border:'none',padding:'4px',borderRadius:'6px',cursor:'pointer',color:'#667eea'}}>
+                <Icons.Sound size={14}/>
+              </button>
+            </div>
+          </div>
+        )}
+        {msgs.map((m,i)=>(
+          <div key={i} className="msg-animate" style={{alignSelf: m.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'80%'}}>
+            <div style={{
+              background: m.role==='user' ? 'linear-gradient(135deg,#667eea,#764ba2)' : 'white',
+              color: m.role==='user' ? 'white' : '#1f2937',
+              padding:'14px 18px',
+              borderRadius: m.role==='user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+              boxShadow:'0 2px 10px rgba(0,0,0,0.08)',
+              lineHeight:1.6,
+              whiteSpace:'pre-wrap',
+              position:'relative',
+              paddingRight: m.role==='assistant' ? '36px' : '18px',
+            }}>
+              {m.content}
+              {m.role==='assistant' && (
+                <button onClick={()=>speak(m.content)}
+                  style={{position:'absolute',top:'8px',right:'8px',background:'rgba(102,126,234,0.1)',border:'none',padding:'4px',borderRadius:'6px',cursor:'pointer',color:'#667eea'}}>
+                  <Icons.Sound size={14}/>
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {busy && (
+          <div style={{alignSelf:'flex-start'}}>
+            <div style={{background:'white',padding:'16px 20px',borderRadius:'20px',boxShadow:'0 2px 10px rgba(0,0,0,0.08)',display:'flex',gap:'6px',alignItems:'center'}}>
+              {[0,1,2].map(i=><span key={i} className="dot" style={{width:'8px',height:'8px',background:'#9ca3af',borderRadius:'50%',display:'inline-block',animationDelay:`${i*0.16}s`}}/>)}
+            </div>
+          </div>
+        )}
+        <div ref={msgEnd}/>
+      </div>
+
+      {/* Input */}
+      <div style={{background:'white',borderTop:'1px solid #e5e7eb',padding:'16px 20px',flexShrink:0}}>
+        {spFB && (
+          <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'10px',padding:'12px 16px',marginBottom:'12px',display:'flex',alignItems:'center',gap:'10px'}}>
+            <Icons.Mic size={16} style={{color:'#10b981',flexShrink:0}}/>
+            <div>
+              <span style={{fontWeight:700,color:'#065f46'}}>發音評分: {spFB.score}/100 </span>
+              <span style={{color:'#374151',fontStyle:'italic'}}>"{spFB.text}"</span>
+            </div>
+          </div>
+        )}
+        <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+          <button onClick={startRec} disabled={recoding}
+            style={{width:'48px',height:'48px',borderRadius:'50%',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0,
+              background: recoding ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#ef4444,#dc2626)',
+              animation: recoding ? 'pulse 1s infinite' : 'none',
+              boxShadow: recoding ? '0 0 0 0 rgba(239,68,68,0.7)' : 'none',
+            }}>
+            <Icons.Mic size={20}/>
+          </button>
+          <input value={input} onChange={e=>setInput(e.target.value)}
+            onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey && input.trim()){ sendAI(input,ctx); setInput(''); }}}
+            placeholder="輸入訊息，按 Enter 發送..."
+            style={{flex:1,padding:'13px 18px',border:'2px solid #e5e7eb',borderRadius:'24px',fontSize:'15px',outline:'none',fontFamily:'inherit'}}
+          />
+          <button onClick={()=>{ if(input.trim()){ sendAI(input,ctx); setInput(''); }}} disabled={busy || !input.trim()}
+            style={{padding:'13px 22px',borderRadius:'24px',border:'none',cursor:'pointer',fontWeight:700,fontSize:'15px',color:'white',
+              background: (busy||!input.trim()) ? '#9ca3af' : 'linear-gradient(135deg,#667eea,#764ba2)',
+              transition:'background 0.2s'}}>
+            發送
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ---- LESSON ---- */
+  const LessonView = () => (
+    <ChatView
+      title={lesson?.title}
+      subtitle={lesson?.topics.join(' · ')}
+      onBack={()=>setView('home')}
+      onComplete={()=>lesson && finishLesson(lesson.id, lesson.xp)}
+      ctx={lesson}
+    />
+  );
+
+  /* ---- FREE CHAT ---- */
+  const FreeChatView = () => (
+    <ChatView
+      title="🗣️ 自由對話練習"
+      subtitle="和 AI 練習任何話題，自然提升英語能力"
+      onBack={()=>setView('home')}
+      ctx={null}
+    />
+  );
+
+  /* ---- PRONUNCIATION ---- */
+  const PronunciationView = () => {
+    const s = PRACTICE_SENTENCES[practiceIdx];
+    return (
+      <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'20px'}}>
+        <div style={{maxWidth:'700px',margin:'0 auto'}}>
+          <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',padding:'20px 24px',marginBottom:'20px',display:'flex',alignItems:'center',gap:'14px',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
+            <button onClick={()=>setView('home')}
+              style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',padding:'10px 18px',borderRadius:'10px',cursor:'pointer',fontWeight:700}}>
+              ← 返回
+            </button>
+            <div>
+              <h2 style={{fontWeight:800,color:'#1f2937',margin:0}}>🎤 發音測試</h2>
+              <p style={{color:'#6b7280',margin:'4px 0 0',fontSize:'14px'}}>說英文，獲得即時評分</p>
+            </div>
+          </div>
+
+          {/* Sentence Card */}
+          <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'24px',padding:'40px 30px',textAlign:'center',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.15)'}}>
+            <div style={{fontSize:'14px',color:'#9ca3af',marginBottom:'8px'}}>📖 跟讀練習 {practiceIdx+1}/{PRACTICE_SENTENCES.length}</div>
+            <h3 style={{fontSize:'clamp(18px,4vw,26px)',fontWeight:700,color:'#1f2937',lineHeight:1.4,marginBottom:'8px'}}>{s.en}</h3>
+            <div style={{fontSize:'14px',color:'#6b7280',marginBottom:'24px'}}>{s.zh}</div>
+            <div style={{display:'flex',justifyContent:'center',gap:'12px',marginBottom:'24px',flexWrap:'wrap'}}>
+              <button onClick={()=>speak(s.en)}
+                style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 24px',borderRadius:'12px',border:'2px solid #667eea',background:'white',color:'#667eea',fontWeight:700,cursor:'pointer',fontSize:'15px'}}>
+                <Icons.Sound size={18}/> 聽標準發音
+              </button>
+              <button onClick={startRec} disabled={recoding}
+                style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 24px',borderRadius:'12px',border:'none',background: recoding ? '#ef4444' : 'linear-gradient(135deg,#ef4444,#dc2626)',color:'white',fontWeight:700,cursor:'pointer',fontSize:'15px',animation: recoding ? 'pulse 1s infinite' : 'none'}}>
+                <Icons.Mic size={18}/> {recoding ? '錄音中...' : '開始說話'}
+              </button>
+            </div>
+            <div style={{display:'flex',justifyContent:'center',gap:'12px'}}>
+              <button onClick={()=>{ setSpFB(null); setPracticeIdx(i=>Math.max(0,i-1)); }}
+                style={{padding:'8px 20px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>
+                ← 上一句
+              </button>
+              <button onClick={()=>{ setSpFB(null); setPracticeIdx(i=>Math.min(PRACTICE_SENTENCES.length-1,i+1)); }}
+                style={{padding:'8px 20px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>
+                下一句 →
+              </button>
+            </div>
+          </div>
+
+          {/* Score Result */}
+          {spFB && (
+            <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'24px',padding:'30px',textAlign:'center',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.15)',animation:'slideIn 0.4s ease'}}>
+              <div style={{fontSize:'16px',fontWeight:700,color:'#1f2937',marginBottom:'16px'}}>發音評分結果</div>
+              <div style={{width:'120px',height:'120px',margin:'0 auto 16px',borderRadius:'50%',
+                background:`conic-gradient(${spFB.score>=80?'#10b981':spFB.score>=60?'#f59e0b':'#ef4444'} ${spFB.score*3.6}deg, #e5e7eb 0deg)`,
+                display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <div style={{width:'90px',height:'90px',background:'white',borderRadius:'50%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{fontSize:'34px',fontWeight:900,color:'#1f2937'}}>{spFB.score}</span>
+                  <span style={{fontSize:'12px',color:'#9ca3af'}}>/ 100</span>
                 </div>
-            );
-        };
-        
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+              </div>
+              <div style={{background:'#f3f4f6',borderRadius:'12px',padding:'12px',marginBottom:'16px',fontSize:'16px',color:'#374151',fontStyle:'italic'}}>
+                "{spFB.text}"
+              </div>
+              <div style={{
+                padding:'12px 20px',borderRadius:'12px',fontWeight:700,fontSize:'15px',
+                background: spFB.score>=80?'#d1fae5':spFB.score>=60?'#fef3c7':'#fee2e2',
+                color: spFB.score>=80?'#065f46':spFB.score>=60?'#92400e':'#991b1b'
+              }}>
+                {spFB.score>=80 ? '🎉 太棒了！發音非常標準！' : spFB.score>=60 ? '👍 不錯！繼續練習更好！' : '💪 再試一次，放慢速度！'}
+              </div>
+            </div>
+          )}
+
+          {/* Tips */}
+          <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'18px',padding:'20px 24px'}}>
+            <h4 style={{color:'white',fontWeight:700,marginBottom:'12px'}}>💡 發音技巧</h4>
+            {['放慢速度，清楚地發出每個音節','注意重音位置，英文有輕重音之分','先聽標準發音再模仿，多次練習','記得嘴型和舌頭的位置也很重要'].map((t,i)=>(
+              <div key={i} style={{color:'rgba(255,255,255,0.9)',fontSize:'14px',marginBottom:'6px',display:'flex',gap:'8px'}}>
+                <span>•</span><span>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if(view==='lesson')       return <LessonView/>;
+  if(view==='freeChat')     return <FreeChatView/>;
+  if(view==='pronunciation')return <PronunciationView/>;
+  return <Home/>;
+};
+
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
+</script>
 </body>
 </html>
