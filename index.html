@@ -1,328 +1,1192 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AI English Master">
-    <meta name="theme-color" content="#667eea">
-    <title>AI English Master</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #667eea; overflow-x: hidden; }
-        #root { width: 100%; min-height: 100vh; }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        @keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
-        @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.7)} 50%{box-shadow:0 0 0 10px rgba(239,68,68,0)} }
-        .dot { animation: bounce 1.4s infinite ease-in-out both; }
-        .dot:nth-child(1){animation-delay:-0.32s}
-        .dot:nth-child(2){animation-delay:-0.16s}
-        .msg-animate { animation: slideIn 0.3s ease; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI English Master">
+<meta name="theme-color" content="#667eea">
+<title>AI English Master</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#667eea;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+#root{width:100%;min-height:100vh}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dot{animation:bounce 1.4s infinite ease-in-out both}
+.msg-in{animation:slideIn .25s ease}
+input,textarea,button{-webkit-appearance:none;font-family:inherit}
+input:focus{outline:none}
+/* Tab bar */
+.tabs{display:flex;border-bottom:2px solid #e5e7eb;background:white;flex-shrink:0}
+.tab{flex:1;padding:12px 8px;border:none;background:none;cursor:pointer;font-weight:600;font-size:14px;color:#9ca3af;transition:.2s;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab.active{color:#667eea;border-bottom-color:#667eea}
+/* Vocab card */
+.vcard{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);margin-bottom:12px;border:2px solid #e5e7eb;transition:.2s}
+.vcard:hover{border-color:#667eea;transform:translateY(-2px)}
+/* Quiz */
+.quiz-opt{display:block;width:100%;text-align:left;padding:14px 18px;border:2px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;font-size:15px;font-weight:500;margin-bottom:10px;transition:.2s;font-family:inherit}
+.quiz-opt:hover{border-color:#667eea;background:#f5f3ff}
+.quiz-opt.correct{border-color:#10b981;background:#d1fae5;color:#065f46}
+.quiz-opt.wrong{border-color:#ef4444;background:#fee2e2;color:#991b1b}
+/* Scenario card */
+.scenario{background:white;border-radius:14px;padding:18px;border-left:4px solid #667eea;margin-bottom:12px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.scenario:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
+</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const{useState,useEffect,useRef,useCallback,useMemo}=React;
 
-const Ico = ({d, size=24, style={}}) => (
+/* ─── SVG Icons ─── */
+const Ico=({d,size=24,style={}})=>(
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
     style={{width:size,height:size,display:'inline-block',flexShrink:0,...style}}>
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d}/>
   </svg>
 );
-const Icons = {
-  Sparkles: p => <Ico d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" {...p}/>,
-  Trophy:   p => <Ico d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" {...p}/>,
-  Star:     p => <Ico d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" {...p}/>,
-  Chat:     p => <Ico d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" {...p}/>,
-  Mic:      p => <Ico d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" {...p}/>,
-  Book:     p => <Ico d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" {...p}/>,
-  Ear:      p => <Ico d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" {...p}/>,
-  Zap:      p => <Ico d="M13 10V3L4 14h7v7l9-11h-7z" {...p}/>,
-  Arrow:    p => <Ico d="M9 5l7 7-7 7" {...p}/>,
-  Award:    p => <Ico d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
-  Sound:    p => <Ico d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" {...p}/>,
-  Check:    p => <Ico d="M5 13l4 4L19 7" {...p}/>,
-  X:        p => <Ico d="M6 18L18 6M6 6l12 12" {...p}/>,
-  Trend:    p => <Ico d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" {...p}/>,
-  Globe:    p => <Ico d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
-  Film:     p => <Ico d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" {...p}/>,
-  News:     p => <Ico d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" {...p}/>,
-  Lock:     p => <Ico d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" {...p}/>,
+const I={
+  Sparkles:p=><Ico d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" {...p}/>,
+  Trophy:  p=><Ico d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" {...p}/>,
+  Star:    p=><Ico d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" {...p}/>,
+  Chat:    p=><Ico d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" {...p}/>,
+  Mic:     p=><Ico d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" {...p}/>,
+  Book:    p=><Ico d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" {...p}/>,
+  Zap:     p=><Ico d="M13 10V3L4 14h7v7l9-11h-7z" {...p}/>,
+  Arrow:   p=><Ico d="M9 5l7 7-7 7" {...p}/>,
+  Award:   p=><Ico d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
+  Sound:   p=><Ico d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" {...p}/>,
+  Check:   p=><Ico d="M5 13l4 4L19 7" {...p}/>,
+  X:       p=><Ico d="M6 18L18 6M6 6l12 12" {...p}/>,
+  Trend:   p=><Ico d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" {...p}/>,
+  Globe:   p=><Ico d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
+  Film:    p=><Ico d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" {...p}/>,
+  News:    p=><Ico d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" {...p}/>,
+  Lock:    p=><Ico d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" {...p}/>,
+  Puzzle:  p=><Ico d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" {...p}/>,
+  Play:    p=><Ico d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" {...p}/>,
 };
 
-const LESSONS = {
-  beginner: {
-    title:'基礎入門', color:'#10b981', emoji:'🌱',
+/* ─── Speak: strips emoji, handles zh/en separately ─── */
+const speak = (rawText) => {
+  window.speechSynthesis.cancel();
+  // Remove emojis, markdown, extra symbols
+  let text = rawText
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu,'')
+    .replace(/[\u{2600}-\u{27BF}]/gu,'')
+    .replace(/[\u{FE00}-\u{FE0F}]/gu,'')
+    .replace(/\*\*/g,'').replace(/\*/g,'')
+    .replace(/#/g,'').replace(/📚|📖|🎯|💡|🔥|👑|🌱|📈/g,'')
+    .replace(/\n+/g,' ').trim();
+
+  // Split into segments by language
+  const segs=[];
+  let cur='', lang=null;
+  for(const ch of text){
+    const isZH=/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch);
+    const l=isZH?'zh':'en';
+    if(lang===null) lang=l;
+    if(l!==lang && cur.trim()){
+      segs.push({t:cur.trim(),l:lang});
+      cur=ch; lang=l;
+    } else { cur+=ch; }
+  }
+  if(cur.trim()) segs.push({t:cur.trim(),l:lang});
+
+  segs.forEach(s=>{
+    const u=new SpeechSynthesisUtterance(s.t);
+    u.lang=s.l==='zh'?'zh-TW':'en-US';
+    u.rate=s.l==='zh'?1.0:0.88;
+    window.speechSynthesis.speak(u);
+  });
+};
+
+/* ─── Simple Markdown renderer ─── */
+const Markdown=({text})=>{
+  const lines=text.split('\n');
+  return(
+    <span>
+      {lines.map((line,i)=>(
+        <span key={i}>
+          {i>0&&<br/>}
+          {line.split(/(\*\*.*?\*\*)/g).map((part,j)=>
+            part.startsWith('**')&&part.endsWith('**')
+              ?<strong key={j}>{part.slice(2,-2)}</strong>
+              :<span key={j}>{part}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+};
+
+/* ─── Rich Lesson Data ─── */
+const LESSONS={
+  beginner:{
+    title:'基礎入門',color:'#10b981',emoji:'🌱',
     lessons:[
-      {id:'b1',title:'日常問候',xp:50,topics:['Hello','Good morning','How are you'],type:'conversation'},
-      {id:'b2',title:'自我介紹',xp:75,topics:['My name is','I am from','I work as'],type:'conversation'},
-      {id:'b3',title:'數字與時間',xp:60,topics:['Numbers 1-100','Telling time','Days of week'],type:'vocabulary'},
-      {id:'b4',title:'購物基礎',xp:80,topics:['How much','I want to buy','Shopping phrases'],type:'conversation'},
-      {id:'b5',title:'餐廳點餐',xp:90,topics:['Menu items','Ordering food','Restaurant etiquette'],type:'conversation'},
+      {id:'b1',title:'日常問候',xp:50,type:'conversation',
+        topics:['Hello / Hi','Good morning / afternoon / evening','How are you?','Nice to meet you','Goodbye / See you'],
+        scenario:'你在咖啡廳遇到新同事，試著用英文打招呼！',
+        vocab:[
+          {w:'Greeting',ph:'/ˈɡriː.tɪŋ/',zh:'問候',ex:'A friendly greeting can make someone\'s day.'},
+          {w:'Introduce',ph:'/ˌɪn.trəˈdjuːs/',zh:'介紹',ex:'Let me introduce myself.'},
+          {w:'Pleasure',ph:'/ˈpleʒ.ər/',zh:'榮幸',ex:'It\'s a pleasure to meet you.'},
+          {w:'Farewell',ph:'/ˌfer.ˈwel/',zh:'再見/告別',ex:'We said our farewells at the airport.'},
+          {w:'Casual',ph:'/ˈkæʒ.u.əl/',zh:'隨意的/輕鬆的',ex:'This is a casual conversation.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'Someone says "How are you?" — the best reply is:',
+            opts:['I am a student.','Fine, thanks! And you?','My name is Tom.','I like coffee.'],ans:1},
+          {type:'quiz',q:'Which is the most formal greeting?',
+            opts:['Hey!','Yo!','Good morning.','What\'s up?'],ans:2},
+          {type:'fill',q:'Complete: "Nice to ___ you!"',ans:'meet',hint:'初次見面說的話'},
+          {type:'fill',q:'Complete: "___ morning! How are you today?"',ans:'Good',hint:'早上的問候語'},
+          {type:'quiz',q:'"See you later" means:',
+            opts:['我看到你了','再見，下次見','你遲到了','我稍後去看你'],ans:1},
+        ],
+        roleplay:[
+          {title:'☕ 咖啡廳巧遇',prompt:'You just bumped into a coworker at a coffee shop. Greet them and make small talk. I\'ll play your coworker.'},
+          {title:'🤝 第一天上班',prompt:'It\'s your first day at work and you\'re meeting your new team. Practice introducing yourself!'},
+          {title:'📞 電話接聽',prompt:'You answer a business call. Practice saying hello professionally.'},
+        ]
+      },
+      {id:'b2',title:'自我介紹',xp:75,type:'conversation',
+        topics:['My name is...','I\'m from...','I work as / I study...','I like / I enjoy...','Nice to meet you all'],
+        scenario:'在派對上認識新朋友，用英文完整介紹自己！',
+        vocab:[
+          {w:'Occupation',ph:'/ˌɒk.jʊˈpeɪ.ʃən/',zh:'職業',ex:'What\'s your occupation?'},
+          {w:'Hometown',ph:'/ˈhoʊm.taʊn/',zh:'家鄉',ex:'My hometown is Taipei.'},
+          {w:'Hobby',ph:'/ˈhɒb.i/',zh:'嗜好',ex:'My hobby is playing guitar.'},
+          {w:'Background',ph:'/ˈbæk.ɡraʊnd/',zh:'背景/出身',ex:'Tell me about your background.'},
+          {w:'Currently',ph:'/ˈkɜː.ənt.li/',zh:'目前/現在',ex:'I\'m currently working at a tech company.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'How do you say "我在台灣出生" in English?',
+            opts:['I live in Taiwan.','I was born in Taiwan.','Taiwan is my job.','I visited Taiwan.'],ans:1},
+          {type:'fill',q:'Complete: "My name ___ Sarah and I ___ from Canada."',ans:'is / am',hint:'be 動詞'},
+          {type:'quiz',q:'To say your job, use:',
+            opts:['I am a/an + job','I have a/an + job','I do a/an + job','I make a/an + job'],ans:0},
+          {type:'fill',q:'Complete: "I enjoy ___ (swim) in the morning."',ans:'swimming',hint:'enjoy + V-ing'},
+        ],
+        roleplay:[
+          {title:'🎉 派對自我介紹',prompt:'You\'re at a party. Introduce yourself to me — include your name, where you\'re from, your job, and a hobby.'},
+          {title:'💼 面試開場',prompt:'It\'s a job interview. The interviewer says: "Tell me about yourself." Go ahead!'},
+        ]
+      },
+      {id:'b3',title:'數字與時間',xp:60,type:'vocabulary',
+        topics:['Numbers 1–1000','Ordinal numbers (1st, 2nd...)','Telling the time','Days & months','Dates'],
+        scenario:'預約餐廳、說明時間地點！',
+        vocab:[
+          {w:'O\'clock',ph:'/əˈklɒk/',zh:'整點',ex:'The meeting starts at three o\'clock.'},
+          {w:'Quarter',ph:'/ˈkwɔː.tər/',zh:'一刻鐘 (15分)',ex:'It\'s a quarter past two.'},
+          {w:'Noon',ph:'/nuːn/',zh:'正午',ex:'Let\'s meet at noon.'},
+          {w:'Midnight',ph:'/ˈmɪd.naɪt/',zh:'午夜',ex:'The store closes at midnight.'},
+          {w:'Appointment',ph:'/əˈpɔɪnt.mənt/',zh:'約定/預約',ex:'I have a doctor\'s appointment at 3pm.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'How do you say 3:15?',
+            opts:['Three fifteen / Quarter past three','Three and quarter','Fifteen three','Three hours fifteen'],ans:0},
+          {type:'quiz',q:'What is "the day after tomorrow"?',
+            opts:['昨天','明天','後天','上週'],ans:2},
+          {type:'fill',q:'The year 2024 is said as "twenty ___-four".',ans:'twenty',hint:'年份的讀法'},
+          {type:'quiz',q:'"Half past six" means:',
+            opts:['6:00','6:15','6:30','6:45'],ans:2},
+        ],
+        roleplay:[
+          {title:'📅 預約餐廳',prompt:'Call a restaurant to make a reservation for 4 people on Saturday at 7pm. I\'ll be the staff.'},
+          {title:'🕐 詢問時間',prompt:'Practice asking and telling the time in different ways.'},
+        ]
+      },
+      {id:'b4',title:'購物基礎',xp:80,type:'conversation',
+        topics:['Asking for price','Sizes & colors','Do you have...?','I\'d like to buy...','Payment & receipt'],
+        scenario:'在服飾店用英文購物！',
+        vocab:[
+          {w:'Discount',ph:'/ˈdɪs.kaʊnt/',zh:'折扣',ex:'Is there a discount for students?'},
+          {w:'Receipt',ph:'/rɪˈsiːt/',zh:'收據',ex:'Can I have a receipt, please?'},
+          {w:'Exchange',ph:'/ɪksˈtʃeɪndʒ/',zh:'換貨',ex:'I\'d like to exchange this for a larger size.'},
+          {w:'Fitting room',ph:'/ˈfɪt.ɪŋ ruːm/',zh:'試衣間',ex:'Where is the fitting room?'},
+          {w:'Bargain',ph:'/ˈbɑː.ɡɪn/',zh:'便宜貨/討價還價',ex:'That\'s a real bargain at $20!'},
+        ],
+        exercises:[
+          {type:'quiz',q:'How do you ask for the price?',
+            opts:['Where is the money?','How much is this?','What is buying?','Can I price it?'],ans:1},
+          {type:'fill',q:'"Do you have this in a ___ size?" (你有大一點的嗎?)',ans:'larger',hint:'比較級'},
+          {type:'quiz',q:'You want to pay by card. You say:',
+            opts:['I have a card.','Can I pay by credit card?','Money card please.','Card is mine.'],ans:1},
+          {type:'fill',q:'"I\'d ___ to try this on, please."',ans:'like',hint:'would like = 想要'},
+        ],
+        roleplay:[
+          {title:'👕 服飾店購物',prompt:'You\'re shopping for a jacket. Ask about sizes, colors, price, and try to get a discount. I\'m the shop assistant.'},
+          {title:'🔄 退換貨',prompt:'You bought a shirt but it\'s the wrong size. Come to exchange it. I\'m the staff.'},
+        ]
+      },
+      {id:'b5',title:'餐廳點餐',xp:90,type:'conversation',
+        topics:['Making a reservation','Reading the menu','Ordering food & drinks','Asking about dishes','Paying the bill'],
+        scenario:'在西餐廳完整體驗從訂位到結帳的英語！',
+        vocab:[
+          {w:'Appetizer',ph:'/ˈæp.ɪ.taɪ.zər/',zh:'開胃菜',ex:'I\'ll start with the soup as an appetizer.'},
+          {w:'Entrée',ph:'/ˈɒn.treɪ/',zh:'主菜',ex:'The steak is the most popular entrée.'},
+          {w:'Allergic',ph:'/əˈlɜː.dʒɪk/',zh:'過敏的',ex:'I\'m allergic to shellfish.'},
+          {w:'Recommendation',ph:'/ˌrek.ə.menˈdeɪ.ʃən/',zh:'推薦',ex:'What\'s your recommendation today?'},
+          {w:'Check / Bill',ph:'/tʃek / bɪl/',zh:'帳單',ex:'Could we have the check, please?'},
+        ],
+        exercises:[
+          {type:'quiz',q:'To ask for the menu, say:',
+            opts:['Give me food.','Could I see the menu, please?','I want to eat.','Menu here!'],ans:1},
+          {type:'fill',q:'"I\'ll ___ the grilled salmon, please."',ans:'have',hint:'點餐時用 have 或 take'},
+          {type:'quiz',q:'How do you tell the waiter you\'re ready to order?',
+            opts:['I am hungry.','We\'re ready to order.','Food now please.','Start eating.'],ans:1},
+          {type:'fill',q:'"Could we get the ___, please?" (請給我們帳單)',ans:'bill',hint:'也可以說 check'},
+          {type:'quiz',q:'"Medium rare" refers to:',
+            opts:['米飯的熟度','牛排的熟度','咖啡甜度','湯的溫度'],ans:1},
+        ],
+        roleplay:[
+          {title:'🍽️ 完整用餐體驗',prompt:'You\'re at an Italian restaurant. I\'m your waiter. Go through the full experience: ordering drinks, appetizer, main course, and asking for the bill.'},
+          {title:'🥜 過敏提醒',prompt:'You\'re allergic to nuts. Practice telling the waiter and asking about ingredients.'},
+        ]
+      },
     ]
   },
-  intermediate: {
-    title:'中級進階', color:'#3b82f6', emoji:'📈',
+  intermediate:{
+    title:'中級進階',color:'#3b82f6',emoji:'📈',
     lessons:[
-      {id:'i1',title:'旅遊英文',xp:100,topics:['Directions','Hotel check-in','Airport phrases'],type:'conversation'},
-      {id:'i2',title:'職場溝通',xp:120,topics:['Email writing','Meeting phrases','Professional vocabulary'],type:'conversation'},
-      {id:'i3',title:'時事討論',xp:110,topics:['Current events','Expressing opinions','Debate skills'],type:'news'},
-      {id:'i4',title:'電話溝通',xp:100,topics:['Phone etiquette','Making appointments','Business calls'],type:'conversation'},
-      {id:'i5',title:'影視對話',xp:130,topics:['Movie quotes','TV show dialogues','Slang and idioms'],type:'media'},
+      {id:'i1',title:'旅遊英文',xp:100,type:'conversation',
+        topics:['Airport check-in','Hotel check-in/out','Asking for directions','Public transport','Tourist attractions'],
+        scenario:'一個人旅遊美國，從機場到飯店全程英語！',
+        vocab:[
+          {w:'Itinerary',ph:'/aɪˈtɪn.ər.er.i/',zh:'行程表',ex:'I\'ve planned a detailed itinerary for our trip.'},
+          {w:'Customs',ph:'/ˈkʌs.təmz/',zh:'海關',ex:'We had to go through customs at the airport.'},
+          {w:'Layover',ph:'/ˈleɪ.oʊ.vər/',zh:'轉機停留',ex:'We have a 3-hour layover in Tokyo.'},
+          {w:'Complimentary',ph:'/ˌkɒm.plɪˈmen.tər.i/',zh:'免費贈送的',ex:'Breakfast is complimentary at this hotel.'},
+          {w:'Sightseeing',ph:'/ˈsaɪt.siː.ɪŋ/',zh:'觀光',ex:'We spent the day sightseeing in Paris.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'At airport check-in: "Window or aisle?" You prefer the window. Say:',
+            opts:['Window, please.','I like to see outside.','Not aisle.','Glass seat.'],ans:0},
+          {type:'fill',q:'"Excuse me, how do I get to the ___ station?" (地鐵站)',ans:'subway',hint:'美式英語'},
+          {type:'quiz',q:'The hotel says "Check-out time is noon." This means:',
+            opts:['你要在12點前入住','你要在12點前退房','午餐免費','12點接送'],ans:1},
+          {type:'fill',q:'"Could you call me a ___, please?" (計程車)',ans:'taxi',hint:'也可以說 cab'},
+        ],
+        roleplay:[
+          {title:'✈️ 機場報到',prompt:'I\'m the airline check-in agent. You\'re checking in for your flight to New York. You have 2 bags to check.'},
+          {title:'🏨 飯店入住',prompt:'I\'m the hotel receptionist. You have a reservation. Practice checking in, asking about amenities, and finding out about checkout.'},
+          {title:'🗺️ 問路',prompt:'You\'re lost in downtown New York. Ask me (a local) for directions to Times Square.'},
+        ]
+      },
+      {id:'i2',title:'職場溝通',xp:120,type:'conversation',
+        topics:['Professional email writing','Meeting phrases','Giving presentations','Handling requests','Office small talk'],
+        scenario:'在外商公司的日常英語溝通！',
+        vocab:[
+          {w:'Agenda',ph:'/əˈdʒen.də/',zh:'議程',ex:'Let\'s stick to the agenda today.'},
+          {w:'Deadline',ph:'/ˈded.laɪn/',zh:'截止日期',ex:'The deadline for this project is Friday.'},
+          {w:'Follow up',ph:'/ˈfɒl.oʊ ʌp/',zh:'跟進/後續聯繫',ex:'I\'ll follow up with you by email.'},
+          {w:'Collaborate',ph:'/kəˈlæb.ə.reɪt/',zh:'合作',ex:'We need to collaborate more closely.'},
+          {w:'Clarify',ph:'/ˈklær.ɪ.faɪ/',zh:'澄清/說明',ex:'Could you clarify what you mean?'},
+        ],
+        exercises:[
+          {type:'quiz',q:'A polite way to disagree in a meeting:',
+            opts:['You\'re wrong!','That\'s a bad idea.','I see your point, but have you considered...?','No, no, no.'],ans:2},
+          {type:'fill',q:'"Could you please ___ me in on that email?" (把我加入副本)',ans:'cc',hint:'Carbon Copy'},
+          {type:'quiz',q:'"Let\'s touch base next week" means:',
+            opts:['去棒球場','下週再聯絡一下','一起吃飯','base camp 集合'],ans:1},
+          {type:'fill',q:'"I\'ll get ___ to you by end of day." (我今天結束前回覆你)',ans:'back',hint:'get back to = 回覆'},
+        ],
+        roleplay:[
+          {title:'📊 會議簡報',prompt:'You\'re presenting Q3 sales results in a team meeting. I\'ll ask questions. Practice presenting data and handling questions professionally.'},
+          {title:'✉️ Email 情境',prompt:'I\'ll describe an email situation and you compose the appropriate response out loud. Ready?'},
+          {title:'💬 老闆對話',prompt:'I\'m your manager. You need to ask for an extension on your project deadline. Practice being professional and persuasive.'},
+        ]
+      },
+      {id:'i3',title:'時事討論',xp:110,type:'news',
+        topics:['Expressing opinions','Agreeing & disagreeing','Presenting arguments','News vocabulary','Discussing trends'],
+        scenario:'用英文討論當今科技、環境或社會話題！',
+        vocab:[
+          {w:'Sustainable',ph:'/səˈsteɪ.nə.bəl/',zh:'永續的/可持續的',ex:'We need more sustainable energy sources.'},
+          {w:'Controversial',ph:'/ˌkɒn.trəˈvɜː.ʃəl/',zh:'有爭議的',ex:'AI is a controversial topic in education.'},
+          {w:'Perspective',ph:'/pəˈspek.tɪv/',zh:'觀點/看法',ex:'From my perspective, social media has both pros and cons.'},
+          {w:'Consequence',ph:'/ˈkɒn.sɪ.kwəns/',zh:'後果/結果',ex:'What are the consequences of climate change?'},
+          {w:'Advocate',ph:'/ˈæd.və.keɪt/',zh:'倡導/支持者',ex:'She advocates for renewable energy.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'To introduce your opinion, say:',
+            opts:['I think / In my opinion / From my perspective','I know that...','Everyone says...','It is fact that...'],ans:0},
+          {type:'fill',q:'"That\'s a good point, ___ I think we also need to consider..." (表示部分同意但有補充)',ans:'but',hint:'轉折詞'},
+          {type:'quiz',q:'A synonym for "important" in news context:',
+            opts:['Significant / crucial','Funny','Small','Quiet'],ans:0},
+          {type:'fill',q:'"___ to recent reports, global temperatures are rising." (根據)',ans:'According',hint:'According to = 根據'},
+        ],
+        roleplay:[
+          {title:'🌍 氣候變遷辯論',prompt:'Let\'s debate: "Individuals are responsible for climate change, not corporations." You take the opposite side of what I argue.'},
+          {title:'🤖 AI 的未來',prompt:'Discuss: Will AI take away more jobs than it creates? Share your opinion and let\'s have a debate.'},
+          {title:'📱 社群媒體利弊',prompt:'Is social media doing more harm than good to society? Let\'s have an in-depth discussion.'},
+        ]
+      },
+      {id:'i4',title:'電話溝通',xp:100,type:'conversation',
+        topics:['Answering & making calls','Taking messages','Leaving voicemail','Clarifying on the phone','Ending a call professionally'],
+        scenario:'在工作中接聽和撥打英語電話！',
+        vocab:[
+          {w:'Hold on',ph:'/hoʊld ɒn/',zh:'稍等',ex:'Could you hold on for a moment?'},
+          {w:'Transfer',ph:'/ˈtræns.fɜːr/',zh:'轉接',ex:'Let me transfer you to the right department.'},
+          {w:'Voicemail',ph:'/ˈvɔɪs.meɪl/',zh:'語音信箱',ex:'Please leave a voicemail after the beep.'},
+          {w:'Reach',ph:'/riːtʃ/',zh:'聯繫到',ex:'I\'ve been trying to reach you all day.'},
+          {w:'Call back',ph:'/kɔːl bæk/',zh:'回電',ex:'I\'ll call you back in 10 minutes.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'To answer a business call professionally:',
+            opts:['Hello?','What do you want?','Good afternoon, ABC Company, this is Sarah speaking.','Yeah?'],ans:2},
+          {type:'fill',q:'"Could you ___ that? The line is a bit noisy." (重複一遍)',ans:'repeat',hint:'請對方重說'},
+          {type:'quiz',q:'When someone\'s not available, you say:',
+            opts:['He\'s not here, bye!','I\'m afraid he\'s not available right now. May I take a message?','Call later.','He\'s busy.'],ans:1},
+          {type:'fill',q:'"Could I speak ___ the sales department, please?"',ans:'to',hint:'speak to/with'},
+        ],
+        roleplay:[
+          {title:'📞 客服電話',prompt:'I\'ll call your company with a complaint. Handle the call professionally — apologize, get details, offer a solution.'},
+          {title:'📋 留言練習',prompt:'I\'m not available. Leave me a detailed voicemail about a meeting you want to schedule.'},
+          {title:'🔄 轉接服務',prompt:'I\'m calling to ask about a product. You need to transfer me to the right person — but practice the full conversation first.'},
+        ]
+      },
+      {id:'i5',title:'影視對話',xp:130,type:'media',
+        topics:['Idioms from movies & TV','Slang & colloquial English','American vs British English','Pop culture references','Natural spoken English'],
+        scenario:'像美劇主角一樣說地道英語！',
+        vocab:[
+          {w:'Binge-watch',ph:'/bɪndʒ wɒtʃ/',zh:'一口氣追劇',ex:'I binge-watched all 10 seasons last weekend.'},
+          {w:'Cliffhanger',ph:'/ˈklɪf.hæŋ.ər/',zh:'懸念結局',ex:'The season finale ended on a cliffhanger!'},
+          {w:'Plot twist',ph:'/plɒt twɪst/',zh:'劇情轉折',ex:'There was a huge plot twist in episode 5.'},
+          {w:'Iconic',ph:'/aɪˈkɒn.ɪk/',zh:'標誌性的/經典的',ex:'"I\'ll be back" is an iconic movie line.'},
+          {w:'Spoiler',ph:'/ˈspɔɪ.lər/',zh:'劇透',ex:'Don\'t spoil the ending for me!'},
+        ],
+        exercises:[
+          {type:'quiz',q:'"Break a leg!" means:',
+            opts:['小心骨折','祝你好運','快跑!','打破紀錄'],ans:1},
+          {type:'quiz',q:'"It\'s raining cats and dogs" means:',
+            opts:['有動物跑進來了','下傾盆大雨','天氣很好','貓狗打架'],ans:1},
+          {type:'fill',q:'"I\'m ___ of this!" = 我受夠了！',ans:'sick',hint:'sick and tired of = 厭倦'},
+          {type:'quiz',q:'"Hit the sack" means:',
+            opts:['打架','去睡覺','出門','上班'],ans:1},
+          {type:'fill',q:'"That movie was ___ (awesome in slang)!"',ans:'lit',hint:'現代俚語：很棒'},
+        ],
+        roleplay:[
+          {title:'🎬 電影評論',prompt:'Let\'s talk about a movie or TV show as if we\'re both fans. Pick any show and discuss it naturally with idioms and casual English.'},
+          {title:'🗣️ 美劇場景重現',prompt:'I\'ll describe a scene from daily life and you respond using casual, native-like English with idioms.'},
+          {title:'🎭 角色扮演',prompt:'Let\'s improvise a scene: you\'re a detective and I\'m a witness. Use dramatic TV-style English!'},
+        ]
+      },
     ]
   },
-  advanced: {
-    title:'高級精通', color:'#8b5cf6', emoji:'🔥',
+  advanced:{
+    title:'高級精通',color:'#8b5cf6',emoji:'🔥',
     lessons:[
-      {id:'a1',title:'學術討論',xp:150,topics:['Academic vocabulary','Presentations','Research discussions'],type:'conversation'},
-      {id:'a2',title:'商務談判',xp:180,topics:['Negotiation skills','Business strategy','Contract terms'],type:'conversation'},
-      {id:'a3',title:'文學賞析',xp:160,topics:['Literary devices','Classic literature','Poetry analysis'],type:'reading'},
-      {id:'a4',title:'新聞深度分析',xp:170,topics:['News analysis','Critical thinking','Media literacy'],type:'news'},
-      {id:'a5',title:'跨文化交流',xp:200,topics:['Cultural nuances','International etiquette','Global communication'],type:'conversation'},
+      {id:'a1',title:'學術討論',xp:150,type:'conversation',
+        topics:['Academic vocabulary','Structuring arguments','Citing evidence','Counter-arguments','Academic presentations'],
+        scenario:'在大學課堂或學術會議上發表意見！',
+        vocab:[
+          {w:'Hypothesis',ph:'/haɪˈpɒθ.ə.sɪs/',zh:'假設',ex:'My hypothesis is that exercise improves memory.'},
+          {w:'Methodology',ph:'/ˌmeθ.əˈdɒl.ə.dʒi/',zh:'研究方法',ex:'The methodology section explains how data was collected.'},
+          {w:'Empirical',ph:'/ɪmˈpɪr.ɪ.kəl/',zh:'實證的/經驗的',ex:'We need empirical evidence to support this claim.'},
+          {w:'Comprehensive',ph:'/ˌkɒm.prɪˈhen.sɪv/',zh:'全面的/詳盡的',ex:'This is a comprehensive analysis of the situation.'},
+          {w:'Substantiate',ph:'/səbˈstæn.ʃi.eɪt/',zh:'證實/支持',ex:'Can you substantiate that claim with data?'},
+        ],
+        exercises:[
+          {type:'fill',q:'"___ to the data, our hypothesis was confirmed." (根據)',ans:'According',hint:'學術寫作常用'},
+          {type:'quiz',q:'To present a counter-argument academically:',
+            opts:['You\'re wrong.','However, one could argue that...','No, that\'s bad.','I disagree completely.'],ans:1},
+          {type:'fill',q:'"This study ___ (aims to) investigate the effects of..." (學術用語)',ans:'seeks to',hint:'seeks to = aims to'},
+          {type:'quiz',q:'"The findings suggest" vs "The findings prove":',
+            opts:['兩者相同','suggest 更謹慎，學術上更常用','prove 更謹慎','都不對'],ans:1},
+        ],
+        roleplay:[
+          {title:'📝 論文口試',prompt:'I\'m your thesis examiner. Present your research topic in 2 minutes, then I\'ll ask challenging questions.'},
+          {title:'🎤 學術簡報',prompt:'You\'re presenting at an academic conference. Start with: "Ladies and gentlemen, today I\'d like to discuss..."'},
+        ]
+      },
+      {id:'a2',title:'商務談判',xp:180,type:'conversation',
+        topics:['Negotiation tactics','Making proposals','Handling objections','Reaching agreement','Contract language'],
+        scenario:'用英文談成一筆重要合約！',
+        vocab:[
+          {w:'Leverage',ph:'/ˈlev.ər.ɪdʒ/',zh:'籌碼/槓桿',ex:'We have strong leverage in this negotiation.'},
+          {w:'Concession',ph:'/kənˈseʃ.ən/',zh:'讓步',ex:'I\'m willing to make a small concession on price.'},
+          {w:'Win-win',ph:'/ˈwɪn wɪn/',zh:'雙贏',ex:'Let\'s find a win-win solution.'},
+          {w:'Non-negotiable',ph:'/nɒn nɪˈɡoʊ.ʃi.ə.bəl/',zh:'不可協商的',ex:'The delivery date is non-negotiable.'},
+          {w:'Stakeholder',ph:'/ˈsteɪk.hoʊl.dər/',zh:'利益相關者',ex:'All stakeholders must approve the contract.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'To make an initial offer diplomatically:',
+            opts:['Give me a discount!','Our initial proposal would be...','That\'s too expensive.','I want more.'],ans:1},
+          {type:'fill',q:'"We could ___ on the timeline if you could meet us halfway on price." (讓步)',ans:'be flexible',hint:'be flexible on = 在...上靈活'},
+          {type:'quiz',q:'"That\'s a dealbreaker for us" means:',
+            opts:['這讓合作更容易','這讓我們無法繼續合作','這是個驚喜','這需要更多討論'],ans:1},
+          {type:'fill',q:'"Shall we put that in ___?" (寫進合約)',ans:'writing',hint:'put in writing = 書面確認'},
+        ],
+        roleplay:[
+          {title:'💼 供應商談判',prompt:'I\'m a supplier and you want to negotiate a 20% discount on bulk orders. I\'ll start at full price. Negotiate skillfully!'},
+          {title:'🤝 Partnership 洽談',prompt:'You want to form a business partnership with my company. Pitch your proposal and negotiate terms.'},
+        ]
+      },
+      {id:'a3',title:'文學賞析',xp:160,type:'reading',
+        topics:['Literary devices','Metaphor & simile','Irony & satire','Analyzing themes','Great authors & works'],
+        scenario:'深度解析英美文學，提升閱讀素養！',
+        vocab:[
+          {w:'Metaphor',ph:'/ˈmet.ə.fɔːr/',zh:'隱喻',ex:'"Life is a journey" is a common metaphor.'},
+          {w:'Irony',ph:'/ˈaɪ.rə.ni/',zh:'諷刺/反諷',ex:'The irony is that the fire station burned down.'},
+          {w:'Protagonist',ph:'/prəˈtæɡ.ə.nɪst/',zh:'主角',ex:'Hamlet is the protagonist of Shakespeare\'s play.'},
+          {w:'Foreshadowing',ph:'/ˌfɔːˈʃæd.oʊ.ɪŋ/',zh:'預示/伏筆',ex:'The dark clouds were foreshadowing the tragedy ahead.'},
+          {w:'Motif',ph:'/moʊˈtiːf/',zh:'主題/動機',ex:'The green light is a recurring motif in The Great Gatsby.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'"She\'s as brave as a lion" is an example of:',
+            opts:['Metaphor','Simile','Irony','Hyperbole'],ans:1},
+          {type:'quiz',q:'In "1984" by Orwell, "Big Brother" symbolizes:',
+            opts:['家庭','監控與獨裁統治','科技','友誼'],ans:1},
+          {type:'fill',q:'"___ killing me!" — this exaggeration is called hyperbole. (這份作業快)',ans:'This homework is',hint:'Hyperbole = 誇飾法'},
+          {type:'quiz',q:'A "round character" in literature means:',
+            opts:['圓臉的角色','有深度、複雜的角色','壞人','主角'],ans:1},
+        ],
+        roleplay:[
+          {title:'📚 讀書會討論',prompt:'We\'re in a book club discussing "The Great Gatsby." Share your interpretation of the American Dream theme. I\'ll respond and challenge your ideas.'},
+          {title:'✍️ 創意寫作',prompt:'I\'ll give you a first line of a story. Continue it using at least two literary devices.'},
+        ]
+      },
+      {id:'a4',title:'新聞深度分析',xp:170,type:'news',
+        topics:['Media literacy','Critical analysis','Identifying bias','Summarizing news','Writing commentary'],
+        scenario:'像記者或評論員一樣分析時事！',
+        vocab:[
+          {w:'Bias',ph:'/ˈbaɪ.əs/',zh:'偏見/偏頗',ex:'Every news outlet has some degree of bias.'},
+          {w:'Credibility',ph:'/ˌkred.ɪˈbɪl.ɪ.ti/',zh:'可信度',ex:'Check the credibility of your sources.'},
+          {w:'Implications',ph:'/ˌɪm.plɪˈkeɪ.ʃənz/',zh:'影響/含義',ex:'What are the implications of this policy change?'},
+          {w:'Rhetoric',ph:'/ˈret.ər.ɪk/',zh:'修辭/花言巧語',ex:'The politician\'s speech was full of empty rhetoric.'},
+          {w:'Objectivity',ph:'/ˌɒb.dʒekˈtɪv.ɪ.ti/',zh:'客觀性',ex:'Journalists must strive for objectivity.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'A "headline" is:',
+            opts:['文章的最後一段','新聞的大標題','圖片說明','記者名字'],ans:1},
+          {type:'fill',q:'"The report ___ (showed clearly) that unemployment is rising." (指出)',ans:'indicated',hint:'indicate = 顯示/指出 (較正式)'},
+          {type:'quiz',q:'To express media bias, you might say:',
+            opts:['This article seems to favor one side','I like this article','The article is long','Good writing'],ans:0},
+          {type:'fill',q:'"According to ___ sources, the deal was signed yesterday."',ans:'reliable',hint:'reliable = 可靠的'},
+        ],
+        roleplay:[
+          {title:'📺 新聞播報員',prompt:'You\'re a news anchor. I\'ll give you 3 bullet points about a news event. Deliver them as a professional broadcast.'},
+          {title:'🎙️ 時事評論',prompt:'Let\'s analyze a current global issue together. I\'ll present the facts and you give your expert commentary.'},
+        ]
+      },
+      {id:'a5',title:'跨文化交流',xp:200,type:'conversation',
+        topics:['Cultural differences in communication','High & low context cultures','Business etiquette globally','Avoiding cultural missteps','Intercultural empathy'],
+        scenario:'在跨國環境中優雅地處理文化差異！',
+        vocab:[
+          {w:'Etiquette',ph:'/ˈet.ɪ.kɪt/',zh:'禮節/禮儀',ex:'Business etiquette varies widely across cultures.'},
+          {w:'Diplomatic',ph:'/ˌdɪp.ləˈmæt.ɪk/',zh:'圓滑的/外交的',ex:'She handled the disagreement in a very diplomatic way.'},
+          {w:'Stereotype',ph:'/ˈster.i.ə.taɪp/',zh:'刻板印象',ex:'We should avoid relying on cultural stereotypes.'},
+          {w:'Nuance',ph:'/ˈnjuː.ɑːns/',zh:'細微差別',ex:'Understanding cultural nuances takes time and exposure.'},
+          {w:'Assimilate',ph:'/əˈsɪm.ɪ.leɪt/',zh:'融入/同化',ex:'It can be hard to assimilate into a new culture.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'In Japan, exchanging business cards is:',
+            opts:['隨意的，用完就丟','一種重要的儀式，要雙手遞接','不常見的','可以在上面塗寫的'],ans:1},
+          {type:'fill',q:'"High-context cultures rely heavily on ___ communication." (非語言)',ans:'non-verbal',hint:'身體語言、眼神等'},
+          {type:'quiz',q:'If a British colleague says "That\'s quite interesting," they might actually mean:',
+            opts:['他們真的很感興趣','他們可能不太喜歡這個想法','他們完全同意','他們想要更多資訊'],ans:1},
+          {type:'fill',q:'"When in Rome, do as the ___." (入境隨俗)',ans:'Romans do',hint:'著名英語諺語'},
+        ],
+        roleplay:[
+          {title:'🌏 跨文化合作會議',prompt:'I\'m your new Japanese business partner. We\'re having our first meeting. Navigate the cultural differences in communication style.'},
+          {title:'🤔 文化誤會處理',prompt:'I\'ll describe a cultural misunderstanding that happened at work. Help me analyze what went wrong and how to fix it diplomatically.'},
+        ]
+      },
     ]
   },
-  expert: {
-    title:'專業大師', color:'#f59e0b', emoji:'👑',
+  expert:{
+    title:'專業大師',color:'#f59e0b',emoji:'👑',
     lessons:[
-      {id:'e1',title:'同步口譯訓練',xp:250,topics:['Real-time interpretation','Speed listening','Translation skills'],type:'listening'},
-      {id:'e2',title:'演講技巧',xp:300,topics:['Public speaking','TED-style presentations','Storytelling'],type:'pronunciation'},
-      {id:'e3',title:'專業寫作',xp:280,topics:['Academic writing','Creative writing','Technical documentation'],type:'writing'},
-      {id:'e4',title:'辯論大師',xp:320,topics:['Debate strategies','Rhetorical devices','Argumentation'],type:'conversation'},
-      {id:'e5',title:'全球時事評論',xp:350,topics:['World affairs','Political discourse','Economic analysis'],type:'news'},
+      {id:'e1',title:'同步口譯訓練',xp:250,type:'listening',
+        topics:['Shadowing technique','Speed comprehension','Note-taking symbols','Memory & chunking','Real-time processing'],
+        scenario:'訓練同步口譯員等級的聽說能力！',
+        vocab:[
+          {w:'Consecutive',ph:'/kənˈsek.jʊ.tɪv/',zh:'逐步口譯的',ex:'Consecutive interpretation requires note-taking.'},
+          {w:'Simultaneous',ph:'/ˌsɪm.əlˈteɪ.ni.əs/',zh:'同步的',ex:'Simultaneous interpretation is extremely challenging.'},
+          {w:'Render',ph:'/ˈren.dər/',zh:'傳達/譯出',ex:'The interpreter rendered the speech flawlessly.'},
+          {w:'Chunking',ph:'/ˈtʃʌŋ.kɪŋ/',zh:'分塊記憶',ex:'Chunking information helps with short-term memory.'},
+          {w:'Verbatim',ph:'/vɜːˈbeɪ.tɪm/',zh:'逐字逐句地',ex:'Don\'t translate verbatim — focus on meaning.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'"Shadowing" technique in language learning means:',
+            opts:['在影子裡學習','即時跟讀並模仿說話者','翻譯別人的話','寫下聽到的內容'],ans:1},
+          {type:'fill',q:'"The key to interpretation is conveying ___, not just words." (意義)',ans:'meaning',hint:'傳遞意義比逐字翻譯重要'},
+          {type:'quiz',q:'When a speaker uses jargon you don\'t know, a professional interpreter would:',
+            opts:['停下來問','直接跳過','用最接近的詞解釋','大聲說"我不知道"'],ans:2},
+          {type:'fill',q:'"Good interpreters must be ___ — able to quickly shift topics." (靈活的)',ans:'versatile',hint:'versatile = 多才多藝/靈活'},
+        ],
+        roleplay:[
+          {title:'🎙️ 高峰會議口譯',prompt:'I\'ll speak a paragraph slowly as a diplomat. Shadow/interpret what I say and we\'ll build up speed together.'},
+          {title:'📻 新聞聽力訓練',prompt:'I\'ll read a fast news report. Listen carefully, then summarize it back to me in your own words.'},
+        ]
+      },
+      {id:'e2',title:'演講技巧',xp:300,type:'pronunciation',
+        topics:['TED-style delivery','Vocal variety (pace, pitch, pause)','Storytelling structure','Handling nerves','Commanding presence'],
+        scenario:'像 TED 演講者一樣打動觀眾！',
+        vocab:[
+          {w:'Enunciation',ph:'/ɪˌnʌn.siˈeɪ.ʃən/',zh:'清晰發音',ex:'Good enunciation is crucial for public speaking.'},
+          {w:'Eloquent',ph:'/ˈel.ə.kwənt/',zh:'雄辯的/流暢的',ex:'She gave an eloquent speech about climate change.'},
+          {w:'Anecdote',ph:'/ˈæn.ɪk.doʊt/',zh:'軼事/小故事',ex:'The speaker opened with a funny anecdote.'},
+          {w:'Cadence',ph:'/ˈkeɪ.dəns/',zh:'節奏/抑揚頓挫',ex:'His speech had a beautiful, rhythmic cadence.'},
+          {w:'Impromptu',ph:'/ɪmˈprɒmp.tjuː/',zh:'即興的',ex:'She gave an impressive impromptu speech.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'The "rule of three" in speeches means:',
+            opts:['用三種語言演講','重要觀點總是以三個為一組','演講三分鐘','引用三個數字'],ans:1},
+          {type:'fill',q:'"___ with a story, end with a call to action." (開頭)',ans:'Open',hint:'演講的黃金結構'},
+          {type:'quiz',q:'Using pauses effectively in a speech:',
+            opts:['代表你忘詞了','讓觀眾處理信息，增加戲劇效果','讓演講更短','表示不確定'],ans:1},
+          {type:'fill',q:'"Today, I want to talk about three things: passion, ___, and purpose." (毅力)',ans:'perseverance',hint:'TED 演講常見主題詞'},
+        ],
+        roleplay:[
+          {title:'🎤 TED 演講60秒',prompt:'Give me a 60-second TED-style talk on any topic you\'re passionate about. I\'ll give feedback on delivery.'},
+          {title:'💡 Elevator Pitch',prompt:'Pitch your "business idea" to me in 30 seconds. Make me want to invest! Use vivid language and enthusiasm.'},
+          {title:'🏆 即興演講',prompt:'I\'ll give you a random topic. You have 10 seconds to think, then speak for 1 minute. Topic: "The most important lesson I\'ve learned."'},
+        ]
+      },
+      {id:'e3',title:'專業寫作',xp:280,type:'writing',
+        topics:['Report & essay structure','Executive summaries','Persuasive writing','Style & tone','Editing & proofreading'],
+        scenario:'撰寫高品質的英語商業及學術文件！',
+        vocab:[
+          {w:'Concise',ph:'/kənˈsaɪs/',zh:'簡潔的',ex:'Keep your executive summary concise and clear.'},
+          {w:'Coherent',ph:'/koʊˈhɪr.ənt/',zh:'連貫的/有條理的',ex:'Your argument must be coherent throughout.'},
+          {w:'Proofread',ph:'/ˈpruːf.riːd/',zh:'校對',ex:'Always proofread before submitting your work.'},
+          {w:'Jargon',ph:'/ˈdʒɑːr.ɡən/',zh:'行話/專業術語',ex:'Avoid jargon when writing for a general audience.'},
+          {w:'Abstract',ph:'/ˈæb.strækt/',zh:'摘要',ex:'The abstract summarizes the entire paper in 200 words.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'An "executive summary" should be:',
+            opts:['非常詳細和長篇','簡短、放在報告最前面的概覽','給主管看的秘密文件','只包含數字的表格'],ans:1},
+          {type:'fill',q:'"___ importantly, the data shows a 20% increase." (更重要的是)',ans:'More',hint:'More importantly = 更重要地'},
+          {type:'quiz',q:'Which is more formal?',
+            opts:['"It\'s gonna be good"','"It will be beneficial"','"Super great stuff"','"Pretty good I think"'],ans:1},
+          {type:'fill',q:'"The purpose of this report is to ___ the findings of..." (概述)',ans:'outline',hint:'outline = 概述/列出要點'},
+        ],
+        roleplay:[
+          {title:'📄 報告寫作諮詢',prompt:'Describe a report you need to write (topic, audience, goal). I\'ll help you structure it and suggest powerful opening lines.'},
+          {title:'✏️ 即席寫作評估',prompt:'I\'ll give you a writing prompt. Compose a professional paragraph and I\'ll give detailed feedback on style, grammar, and tone.'},
+        ]
+      },
+      {id:'e4',title:'辯論大師',xp:320,type:'conversation',
+        topics:['Formal debate structure','Rebuttal techniques','Logical fallacies','Rhetorical devices','Persuasion psychology'],
+        scenario:'在正式辯論場合駕馭語言的力量！',
+        vocab:[
+          {w:'Rebuttal',ph:'/rɪˈbʌt.əl/',zh:'反駁',ex:'His rebuttal completely undermined her argument.'},
+          {w:'Assertion',ph:'/əˈsɜː.ʃən/',zh:'主張/斷言',ex:'You need evidence to support your assertions.'},
+          {w:'Fallacy',ph:'/ˈfæl.ə.si/',zh:'謬誤',ex:'"Ad hominem" is a common logical fallacy.'},
+          {w:'Compelling',ph:'/kəmˈpel.ɪŋ/',zh:'令人信服的',ex:'She made a compelling argument for change.'},
+          {w:'Concede',ph:'/kənˈsiːd/',zh:'承認/讓步',ex:'I must concede that your point has merit.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'An "ad hominem" fallacy means:',
+            opts:['用數據反駁','攻擊對方人身而非論點','引用廣告','使用拉丁文'],ans:1},
+          {type:'fill',q:'"While I ___ your point about cost, the long-term benefits outweigh it." (承認)',ans:'acknowledge',hint:'acknowledge = 承認對方的點'},
+          {type:'quiz',q:'The best way to start a strong rebuttal:',
+            opts:['"You\'re completely wrong!"','"I respectfully disagree because the evidence suggests..."','"That\'s silly."','"Maybe, I don\'t know."'],ans:1},
+          {type:'fill',q:'"___ speaking, the data doesn\'t support that conclusion." (廣泛地)',ans:'Broadly',hint:'Broadly speaking = 廣泛來說'},
+        ],
+        roleplay:[
+          {title:'⚔️ 正式辯論對決',prompt:'Topic: "Remote work is better than office work." I\'ll argue FOR it. You argue AGAINST. Use formal debate structure.'},
+          {title:'🧠 蘇格拉底式對話',prompt:'I\'ll make a bold statement. Challenge my reasoning using probing questions, like Socrates. Topic: "Money is the most important thing in life."'},
+        ]
+      },
+      {id:'e5',title:'全球時事評論',xp:350,type:'news',
+        topics:['Geopolitics','Economic analysis','Technology policy','Climate & environment','Global health & society'],
+        scenario:'以母語者程度評論全球大事！',
+        vocab:[
+          {w:'Geopolitics',ph:'/ˌdʒiː.oʊˈpɒl.ɪ.tɪks/',zh:'地緣政治',ex:'The geopolitics of the region are shifting rapidly.'},
+          {w:'Sanctions',ph:'/ˈsæŋk.ʃənz/',zh:'制裁',ex:'Economic sanctions were imposed on the country.'},
+          {w:'Multilateral',ph:'/ˌmʌl.tiˈlæt.ər.əl/',zh:'多邊的',ex:'A multilateral agreement is needed to address climate change.'},
+          {w:'Paradigm shift',ph:'/ˈpær.ə.daɪm ʃɪft/',zh:'典範轉移',ex:'AI represents a paradigm shift in how we work.'},
+          {w:'Polarization',ph:'/ˌpoʊ.lər.ɪˈzeɪ.ʃən/',zh:'極化/兩極化',ex:'Political polarization is increasing in many democracies.'},
+        ],
+        exercises:[
+          {type:'quiz',q:'"The G7" refers to:',
+            opts:['7個最大發展中國家','7個最大工業民主國家','七大洲','7種主要貨幣'],ans:1},
+          {type:'fill',q:'"The ___ gap between rich and poor nations is widening." (財富)',ans:'wealth',hint:'wealth gap = 貧富差距'},
+          {type:'quiz',q:'"Soft power" in international relations means:',
+            opts:['軍事力量','通過文化、外交影響他國','經濟制裁','談判技巧'],ans:1},
+          {type:'fill',q:'"The treaty aims to ___ carbon emissions by 2050." (淨零)',ans:'net-zero',hint:'reach net-zero = 達到碳中和'},
+        ],
+        roleplay:[
+          {title:'📡 國際新聞分析',prompt:'I\'ll describe a current global event. Analyze it like a foreign policy expert — causes, implications, and recommendations.'},
+          {title:'🌐 圓桌論壇',prompt:'You\'re on an international panel. Topic: "How should the world respond to AI regulation?" Deliver a 2-minute opening statement.'},
+        ]
+      },
     ]
   }
 };
 
-const PRACTICE_SENTENCES = [
-  {en:"Hello, how are you today?", zh:"日常問候"},
-  {en:"I would like to order a coffee, please.", zh:"點餐用語"},
-  {en:"Could you help me find the nearest train station?", zh:"問路"},
-  {en:"I'm sorry, I didn't quite catch that. Could you repeat it?", zh:"請求重複"},
-  {en:"Thank you very much for your help.", zh:"表達感謝"},
-  {en:"I've been studying English for two years.", zh:"自我介紹"},
-  {en:"What do you think about the current economic situation?", zh:"時事討論"},
-  {en:"I completely agree with your point of view.", zh:"表達同意"},
+const PRONUNCIATION_SENTENCES=[
+  {en:"Hello! It's a pleasure to meet you.",zh:'日常問候'},
+  {en:"Could I have the menu, please?",zh:'餐廳用語'},
+  {en:"Excuse me, could you repeat that more slowly?",zh:'請對方重複'},
+  {en:"I would like to make a reservation for two people.",zh:'預約訂位'},
+  {en:"I completely agree with your perspective on this matter.",zh:'表達同意'},
+  {en:"The meeting has been rescheduled to Thursday afternoon.",zh:'職場通知'},
+  {en:"According to recent reports, the economy is showing signs of recovery.",zh:'新聞報導'},
+  {en:"The results of our research substantiate the original hypothesis.",zh:'學術陳述'},
+  {en:"We need to find a mutually beneficial solution to move forward.",zh:'商務談判'},
+  {en:"Climate change represents one of the greatest challenges of our time.",zh:'全球議題'},
 ];
 
-function typeIcon(type) {
-  const map = {conversation:<Icons.Chat/>,vocabulary:<Icons.Book/>,listening:<Icons.Ear/>,
-    pronunciation:<Icons.Mic/>,news:<Icons.News/>,media:<Icons.Film/>,
-    reading:<Icons.Globe/>,writing:<Icons.Book/>};
-  return map[type] || <Icons.Book/>;
-}
+/* ─── Microphone helper ─── */
+const getMicPermission = async () => {
+  if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+    alert('語音功能需要 HTTPS。\n請確認你的網站已啟用 SSL（Vercel 預設已啟用）。');
+    return false;
+  }
+  try{
+    await navigator.mediaDevices.getUserMedia({audio:true});
+    return true;
+  }catch(e){
+    alert('請在瀏覽器設定中允許麥克風存取。\nSafari: 設定 → 網站 → 麥克風\nChrome: 點擊網址列的鎖頭圖示');
+    return false;
+  }
+};
 
-const App = () => {
-  const [view,  setView]  = useState('home');
-  const [profile, setProfile] = useState({
-    level:1, totalXP:0, streak:7, completedLessons:[]
-  });
-  const [lesson,  setLesson]  = useState(null);
-  const [msgs,    setMsgs]    = useState([]);
-  const [input,   setInput]   = useState('');
-  const [busy,    setBusy]    = useState(false);
-  const [recoding,setRecoding]= useState(false);
-  const [spFB,    setSpFB]    = useState(null);
-  const [practiceIdx, setPracticeIdx] = useState(0);
-  const msgEnd = useRef(null);
+const startSpeechRec = async (onResult, onEnd) => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('請使用 Chrome 或 Safari 瀏覽器使用語音功能'); return null; }
+  const ok = await getMicPermission();
+  if(!ok) return null;
+  const r = new SR();
+  r.lang='en-US'; r.continuous=false; r.interimResults=false;
+  r.onresult = e => {
+    const t=e.results[0][0].transcript, c=e.results[0][0].confidence;
+    onResult(t, Math.round(c*100));
+  };
+  r.onerror = () => onEnd();
+  r.onend   = () => onEnd();
+  r.start();
+  return r;
+};
+
+/* ─── ChatView — all state is LOCAL (fixes input lag) ─── */
+const ChatView = React.memo(({lesson, onBack, onFinish, addXP}) => {
+  const [msgs, setMsgs]     = useState([]);
+  const [busy, setBusy]     = useState(false);
+  const [recoding, setRec]  = useState(false);
+  const [spFB, setSpFB]     = useState(null);
+  const [tab, setTab]       = useState('chat');       // 'chat' | 'vocab' | 'exercise' | 'roleplay'
+  const [quizState, setQS]  = useState({idx:0,chosen:null,score:0,done:false});
+  const [fillVal, setFillV] = useState('');
+  const [fillRes, setFillR] = useState(null);
+
+  const inputRef = useRef(null);  // uncontrolled input — fixes lag
+  const msgEnd   = useRef(null);
+
+  const isLesson = !!lesson;
+  const systemPrompt = isLesson
+    ? `You are an enthusiastic English teacher. The student is learning "${lesson.title}" (topics: ${lesson.topics.join(', ')}).
+       Guide them through realistic conversation practice. Gently correct grammar mistakes by modeling correct usage.
+       Give warm encouragement. Use a mix of English and Traditional Chinese.
+       Keep each reply to 2-4 sentences. Be engaging and natural.`
+    : `You are a friendly, native-level English conversation partner.
+       Have natural conversations on any topic. Gently note interesting vocabulary or grammar when relevant.
+       Use a mix of English and Traditional Chinese. Be warm and encouraging.`;
 
   useEffect(()=>{
-    const s = localStorage.getItem('eng_profile');
-    if(s) try{ setProfile(JSON.parse(s)); }catch(e){}
+    const welcome = isLesson
+      ? `Hi! 👋 Let's practice **${lesson.title}**!\n\n今天我們練習「${lesson.title}」。主題：${lesson.topics.slice(0,3).join('、')} 等。\n\n場景：${lesson.scenario}\n\n準備好了嗎？試著用英文開始說話！`
+      : `Hi there! 😊 I'm your AI English conversation partner.\n我是你的 AI 英語夥伴！\n\nFeel free to talk about anything — work, travel, hobbies, news... 想聊什麼都可以！Let's go!`;
+    setMsgs([{role:'assistant', content:welcome}]);
   },[]);
 
-  useEffect(()=>{ localStorage.setItem('eng_profile', JSON.stringify(profile)); },[profile]);
-  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:'smooth'}); },[msgs]);
+  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:'smooth'}); },[msgs, busy]);
 
-  const xpForLevel = l => l * 500;
-  const progress = () => {
-    const lo = xpForLevel(profile.level-1), hi = xpForLevel(profile.level);
-    return Math.min(((profile.totalXP-lo)/(hi-lo))*100, 100);
-  };
-
-  const addXP = amt => {
-    setProfile(p=>{
-      const nx = p.totalXP + amt;
-      let nl = p.level;
-      while(nx >= xpForLevel(nl)) nl++;
-      if(nl > p.level) setTimeout(()=>alert(`🎉 Level Up！恭喜升到 Level ${nl}！`),300);
-      return {...p, totalXP:nx, level:nl};
-    });
-  };
-
-  const finishLesson = (id, xp) => {
-    if(!profile.completedLessons.includes(id)){
-      setProfile(p=>({...p, completedLessons:[...p.completedLessons,id], streak:p.streak+1}));
-      addXP(xp);
-      alert(`🎊 課程完成！+${xp} XP！繼續加油！`);
-    }
-    setView('home');
-  };
-
-  const sendAI = async (msg, ctx) => {
+  const send = useCallback(async (text) => {
+    if(!text.trim() || busy) return;
     setBusy(true);
-    setMsgs(m=>[...m,{role:'user',content:msg}]);
-    try {
-      const sys = ctx
-        ? `You are a friendly English teacher. The student is learning "${ctx.title}" (topics: ${ctx.topics.join(', ')}). 
-           Speak naturally, gently correct mistakes, give encouragement. 
-           Use a mix of English and Traditional Chinese (繁體中文) for explanations.
-           Keep replies concise (2-4 sentences), engaging, and conversational.`
-        : `You are a friendly English conversation partner. 
-           Help the user practice natural English conversation. 
-           Mix English with Traditional Chinese (繁體中文) explanations when helpful.
-           Keep replies natural and encouraging.`;
-      const res = await fetch('https://api.anthropic.com/v1/messages',{
+    setMsgs(m=>[...m,{role:'user',content:text}]);
+    try{
+      const res = await fetch('/api/chat',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           model:'claude-sonnet-4-20250514',
-          max_tokens:800,
-          system: sys,
-          messages:[...msgs,{role:'user',content:msg}]
+          max_tokens:600,
+          system:systemPrompt,
+          messages:[...msgs,{role:'user',content:text}]
         })
       });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
+      if(d.error) throw new Error(d.error);
       setMsgs(m=>[...m,{role:'assistant',content:d.content[0].text}]);
       addXP(10);
-    } catch(e) {
-      setMsgs(m=>[...m,{role:'assistant',content:'抱歉，連線出錯了。請檢查網路後再試！(API connection error)'}]);
+    }catch(e){
+      console.error(e);
+      setMsgs(m=>[...m,{role:'assistant',content:`⚠️ 連線錯誤：${e.message}\n\n請確認 Vercel 已設定 ANTHROPIC_API_KEY 環境變數。`}]);
     }
     setBusy(false);
+  },[msgs, busy, systemPrompt]);
+
+  const handleKey = useCallback(e=>{
+    if(e.key==='Enter' && !e.shiftKey && inputRef.current){
+      const v=inputRef.current.value.trim();
+      if(v){ inputRef.current.value=''; setSpFB(null); send(v); }
+      e.preventDefault();
+    }
+  },[send]);
+
+  const handleSend = useCallback(()=>{
+    if(inputRef.current){
+      const v=inputRef.current.value.trim();
+      if(v){ inputRef.current.value=''; setSpFB(null); send(v); }
+    }
+  },[send]);
+
+  const handleMic = async () => {
+    if(recoding) return;
+    setRec(true);
+    await startSpeechRec(
+      (txt, score) => {
+        if(inputRef.current) inputRef.current.value = txt;
+        setSpFB({text:txt,score});
+        if(score>70) addXP(15);
+      },
+      () => setRec(false)
+    );
   };
 
-  const speak = txt => {
-    const u = new SpeechSynthesisUtterance(txt.replace(/[\u4e00-\u9fa5\u3000-\u303f]/g,''));
-    u.lang='en-US'; u.rate=0.85;
-    window.speechSynthesis.speak(u);
+  const startRoleplay = (rp) => {
+    setMsgs([{role:'assistant',content:`🎭 **${rp.title}**\n\n${rp.prompt}\n\n---\n準備好了嗎？開始吧！`}]);
+    setTab('chat');
   };
 
-  const startRec = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if(!SR){ alert('請用 Chrome 或 Safari 瀏覽器使用語音功能'); return; }
-    const r = new SR();
-    r.lang='en-US'; r.continuous=false; r.interimResults=false;
-    r.onstart = ()=>{ setRecoding(true); setSpFB(null); };
-    r.onresult = e => {
-      const t=e.results[0][0].transcript, c=e.results[0][0].confidence;
-      setInput(t);
-      setSpFB({text:t, score:Math.round(c*100)});
-      if(c>0.7) addXP(15);
-    };
-    r.onerror = ()=>setRecoding(false);
-    r.onend   = ()=>setRecoding(false);
-    r.start();
+  /* Quiz logic */
+  const exercises = lesson?.exercises || [];
+  const currentQ = exercises[quizState.idx];
+
+  const answerQuiz = (i) => {
+    if(quizState.chosen!==null) return;
+    const correct = i===currentQ.ans;
+    setQS(s=>({...s, chosen:i, score: s.score+(correct?1:0)}));
+    if(correct) addXP(20);
   };
 
-  const openLesson = (ls, tier) => {
-    setLesson({...ls, tier});
-    setMsgs([{role:'assistant',
-      content:`Hi there! 👋 Let's practice **${ls.title}**!\n\n今天我們來練習「${ls.title}」！\n\n📚 Topics: ${ls.topics.join(' · ')}\n\n試著用英文跟我說話吧！你可以問問題，或是直接開始對話。Let's go! 🚀`}]);
-    setSpFB(null);
-    setInput('');
-    setView('lesson');
+  const nextQ = () => {
+    if(quizState.idx+1>=exercises.length){
+      setQS(s=>({...s,done:true}));
+    } else {
+      setQS(s=>({...s,idx:s.idx+1,chosen:null}));
+      setFillV(''); setFillR(null);
+    }
   };
 
-  /* ---- HOME ---- */
-  const Home = () => (
-    <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'20px'}}>
-      <div style={{maxWidth:'900px',margin:'0 auto'}}>
+  const checkFill = () => {
+    const correct = fillVal.trim().toLowerCase()===currentQ.ans.toLowerCase();
+    setFillR(correct?'correct':'wrong');
+    if(correct) addXP(20);
+  };
 
+  const resetQuiz = () => { setQS({idx:0,chosen:null,score:0,done:false}); setFillV(''); setFillR(null); };
+
+  const hasTabs = isLesson;
+  const tabs = hasTabs ? ['chat','vocab','exercise','roleplay'] : ['chat'];
+  const tabLabel = {chat:'💬 對話',vocab:'📖 單字',exercise:'🧩 練習',roleplay:'🎭 情境'};
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f3f4f6',overflow:'hidden'}}>
+      {/* Header */}
+      <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px',flexShrink:0,flexWrap:'wrap'}}>
+        <button onClick={onBack} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.3)',color:'white',padding:'8px 14px',borderRadius:'8px',cursor:'pointer',fontWeight:700,fontSize:'13px',flexShrink:0}}>← 返回</button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:'17px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{isLesson ? lesson.title : '🗣️ 自由對話'}</div>
+          {isLesson&&<div style={{fontSize:'12px',opacity:.85,marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{lesson.topics.slice(0,3).join(' · ')}</div>}
+        </div>
+        {isLesson&&<button onClick={onFinish} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.3)',color:'white',padding:'8px 14px',borderRadius:'8px',cursor:'pointer',fontWeight:700,fontSize:'13px',flexShrink:0}}>✅ 完成</button>}
+      </div>
+
+      {/* Tabs */}
+      {hasTabs&&(
+        <div className="tabs">
+          {tabs.map(t=>(
+            <button key={t} className={`tab${tab===t?' active':''}`} onClick={()=>setTab(t)}>{tabLabel[t]}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Chat Tab */}
+      {tab==='chat'&&(
+        <>
+          <div style={{flex:1,overflowY:'auto',padding:'16px',display:'flex',flexDirection:'column',gap:'12px'}}>
+            {msgs.map((m,i)=>(
+              <div key={i} className="msg-in" style={{alignSelf:m.role==='user'?'flex-end':'flex-start',maxWidth:'82%'}}>
+                <div style={{
+                  background:m.role==='user'?'linear-gradient(135deg,#667eea,#764ba2)':'white',
+                  color:m.role==='user'?'white':'#1f2937',
+                  padding:'12px 16px',
+                  borderRadius:m.role==='user'?'18px 18px 4px 18px':'18px 18px 18px 4px',
+                  boxShadow:'0 2px 8px rgba(0,0,0,.08)',
+                  lineHeight:1.6, fontSize:'15px',
+                  position:'relative',
+                  paddingRight:m.role==='assistant'?'38px':'16px'
+                }}>
+                  <Markdown text={m.content}/>
+                  {m.role==='assistant'&&(
+                    <button onClick={()=>speak(m.content)}
+                      style={{position:'absolute',top:'8px',right:'8px',background:'rgba(102,126,234,.12)',border:'none',padding:'5px',borderRadius:'6px',cursor:'pointer',color:'#667eea',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <I.Sound size={14}/>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {busy&&(
+              <div style={{alignSelf:'flex-start'}}>
+                <div style={{background:'white',padding:'14px 18px',borderRadius:'18px',boxShadow:'0 2px 8px rgba(0,0,0,.08)',display:'flex',gap:'5px',alignItems:'center'}}>
+                  {[0,1,2].map(i=><span key={i} className="dot" style={{width:'7px',height:'7px',background:'#9ca3af',borderRadius:'50%',display:'inline-block',animationDelay:`${i*.16}s`}}/>)}
+                </div>
+              </div>
+            )}
+            <div ref={msgEnd}/>
+          </div>
+          {/* Input */}
+          <div style={{background:'white',borderTop:'1px solid #e5e7eb',padding:'12px 14px',flexShrink:0}}>
+            {spFB&&(
+              <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'10px',padding:'10px 14px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'8px',fontSize:'14px'}}>
+                <I.Mic size={15} style={{color:'#10b981',flexShrink:0}}/>
+                <span style={{fontWeight:700,color:'#065f46'}}>{spFB.score}/100</span>
+                <span style={{color:'#374151',fontStyle:'italic'}}>"{spFB.text}"</span>
+              </div>
+            )}
+            <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+              <button onClick={handleMic} disabled={recoding}
+                style={{width:'46px',height:'46px',borderRadius:'50%',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0,
+                  background:'linear-gradient(135deg,#ef4444,#dc2626)',
+                  animation:recoding?'pulse 1s infinite':'none'}}>
+                <I.Mic size={20}/>
+              </button>
+              <input ref={inputRef} defaultValue="" onKeyDown={handleKey}
+                placeholder="輸入訊息，按 Enter 發送..."
+                style={{flex:1,padding:'12px 16px',border:'2px solid #e5e7eb',borderRadius:'24px',fontSize:'15px',outline:'none',background:'white',fontFamily:'inherit'}}
+              />
+              <button onClick={handleSend} disabled={busy}
+                style={{padding:'12px 18px',borderRadius:'24px',border:'none',cursor:'pointer',fontWeight:700,fontSize:'14px',color:'white',flexShrink:0,
+                  background:busy?'#9ca3af':'linear-gradient(135deg,#667eea,#764ba2)'}}>
+                發送
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Vocab Tab */}
+      {tab==='vocab'&&lesson&&(
+        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+          <h3 style={{fontWeight:800,marginBottom:'16px',color:'#1f2937'}}>📖 本課關鍵單字</h3>
+          {lesson.vocab.map((v,i)=>(
+            <div key={i} className="vcard">
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'6px'}}>
+                <div>
+                  <span style={{fontWeight:800,fontSize:'20px',color:'#1f2937'}}>{v.w}</span>
+                  <span style={{marginLeft:'10px',color:'#9ca3af',fontSize:'14px'}}>{v.ph}</span>
+                </div>
+                <button onClick={()=>speak(v.w)}
+                  style={{background:'rgba(102,126,234,.1)',border:'none',padding:'6px',borderRadius:'8px',cursor:'pointer',color:'#667eea',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <I.Sound size={16}/>
+                </button>
+              </div>
+              <div style={{display:'inline-block',background:'#ede9fe',color:'#5b21b6',padding:'3px 10px',borderRadius:'20px',fontSize:'13px',fontWeight:600,marginBottom:'8px'}}>{v.zh}</div>
+              <div style={{fontSize:'14px',color:'#6b7280',fontStyle:'italic',cursor:'pointer'}} onClick={()=>speak(v.ex)}>
+                <I.Sound size={12} style={{marginRight:'4px',verticalAlign:'middle',color:'#9ca3af'}}/>
+                {v.ex}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Exercise Tab */}
+      {tab==='exercise'&&lesson&&(
+        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+          {quizState.done ? (
+            <div style={{textAlign:'center',padding:'40px 20px'}}>
+              <div style={{fontSize:'64px',marginBottom:'16px'}}>🎉</div>
+              <h2 style={{fontSize:'28px',fontWeight:800,color:'#1f2937',marginBottom:'8px'}}>練習完成！</h2>
+              <p style={{color:'#6b7280',fontSize:'18px',marginBottom:'24px'}}>
+                得分：{quizState.score} / {exercises.length} 題
+              </p>
+              <div style={{
+                background: quizState.score>=exercises.length*0.8?'#d1fae5':'#fef3c7',
+                color: quizState.score>=exercises.length*0.8?'#065f46':'#92400e',
+                padding:'16px',borderRadius:'14px',fontWeight:700,marginBottom:'24px'
+              }}>
+                {quizState.score===exercises.length?'🏆 全對！太厲害了！':
+                  quizState.score>=exercises.length*0.8?'🌟 表現優秀！繼續保持！':
+                  '💪 不錯！多練習幾次就會更好！'}
+              </div>
+              <button onClick={resetQuiz}
+                style={{background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',border:'none',padding:'14px 32px',borderRadius:'14px',fontWeight:700,fontSize:'16px',cursor:'pointer'}}>
+                再練習一次
+              </button>
+            </div>
+          ) : currentQ ? (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+                <span style={{fontWeight:700,color:'#6b7280'}}>題目 {quizState.idx+1} / {exercises.length}</span>
+                <span style={{background:'#ede9fe',color:'#5b21b6',padding:'4px 12px',borderRadius:'20px',fontWeight:700,fontSize:'13px'}}>
+                  {currentQ.type==='quiz'?'選擇題':'填空題'}
+                </span>
+              </div>
+              <div style={{background:'white',borderRadius:'16px',padding:'24px',boxShadow:'0 4px 16px rgba(0,0,0,.08)',marginBottom:'16px'}}>
+                <p style={{fontSize:'17px',fontWeight:600,color:'#1f2937',marginBottom:'20px',lineHeight:1.6}}>{currentQ.q}</p>
+
+                {currentQ.type==='quiz'&&currentQ.opts.map((o,i)=>(
+                  <button key={i} className={`quiz-opt${quizState.chosen===i?(i===currentQ.ans?' correct':' wrong'):quizState.chosen!==null&&i===currentQ.ans?' correct':''}`}
+                    onClick={()=>answerQuiz(i)} disabled={quizState.chosen!==null}>
+                    <span style={{marginRight:'8px',fontWeight:700}}>{['A','B','C','D'][i]}.</span>{o}
+                  </button>
+                ))}
+
+                {currentQ.type==='fill'&&(
+                  <div>
+                    <div style={{background:'#f3f4f6',borderRadius:'10px',padding:'12px',marginBottom:'12px',color:'#6b7280',fontSize:'14px'}}>
+                      💡 提示：{currentQ.hint}
+                    </div>
+                    <div style={{display:'flex',gap:'10px'}}>
+                      <input value={fillVal} onChange={e=>setFillV(e.target.value)}
+                        onKeyDown={e=>e.key==='Enter'&&fillRes===null&&checkFill()}
+                        placeholder="輸入你的答案..."
+                        disabled={fillRes!==null}
+                        style={{flex:1,padding:'12px 16px',border:`2px solid ${fillRes==='correct'?'#10b981':fillRes==='wrong'?'#ef4444':'#e5e7eb'}`,borderRadius:'10px',fontSize:'15px',outline:'none',fontFamily:'inherit'}}
+                      />
+                      {fillRes===null&&<button onClick={checkFill} style={{padding:'12px 20px',background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',border:'none',borderRadius:'10px',fontWeight:700,cursor:'pointer'}}>確認</button>}
+                    </div>
+                    {fillRes&&(
+                      <div style={{marginTop:'12px',padding:'12px 16px',borderRadius:'10px',
+                        background:fillRes==='correct'?'#d1fae5':'#fee2e2',
+                        color:fillRes==='correct'?'#065f46':'#991b1b',fontWeight:600}}>
+                        {fillRes==='correct'?'✅ 正確！':'❌ 答案是：'+currentQ.ans}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {(quizState.chosen!==null || fillRes!==null)&&(
+                <button onClick={nextQ}
+                  style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',border:'none',borderRadius:'14px',fontWeight:700,fontSize:'16px',cursor:'pointer'}}>
+                  {quizState.idx+1<exercises.length?'下一題 →':'查看結果'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p style={{color:'#9ca3af',textAlign:'center',padding:'40px'}}>目前沒有練習題</p>
+          )}
+        </div>
+      )}
+
+      {/* Roleplay Tab */}
+      {tab==='roleplay'&&lesson&&(
+        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+          <h3 style={{fontWeight:800,marginBottom:'8px',color:'#1f2937'}}>🎭 情境模擬練習</h3>
+          <p style={{color:'#6b7280',fontSize:'14px',marginBottom:'16px'}}>選一個情境，和 AI 進行角色扮演！</p>
+          {lesson.roleplay.map((rp,i)=>(
+            <div key={i} className="scenario" onClick={()=>startRoleplay(rp)}>
+              <div style={{fontWeight:700,fontSize:'16px',color:'#1f2937',marginBottom:'6px'}}>{rp.title}</div>
+              <div style={{fontSize:'14px',color:'#6b7280',lineHeight:1.5}}>{rp.prompt}</div>
+              <div style={{marginTop:'10px',color:'#667eea',fontWeight:600,fontSize:'13px',display:'flex',alignItems:'center',gap:'4px'}}>
+                <I.Play size={14}/> 點擊開始練習
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+/* ─── Pronunciation View ─── */
+const PronunciationView = ({onBack, addXP}) => {
+  const [idx,setIdx]     = useState(0);
+  const [spFB,setSpFB]   = useState(null);
+  const [recoding,setRec]= useState(false);
+  const s = PRONUNCIATION_SENTENCES[idx];
+
+  const handleMic = async () => {
+    if(recoding) return;
+    setRec(true); setSpFB(null);
+    await startSpeechRec(
+      (txt,score) => { setSpFB({text:txt,score}); if(score>70) addXP(15); },
+      () => setRec(false)
+    );
+  };
+
+  return(
+    <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'16px'}}>
+      <div style={{maxWidth:'600px',margin:'0 auto'}}>
+        <div style={{background:'rgba(255,255,255,.96)',borderRadius:'18px',padding:'16px 18px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'12px',boxShadow:'0 8px 24px rgba(0,0,0,.1)'}}>
+          <button onClick={onBack} style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',padding:'10px 16px',borderRadius:'10px',cursor:'pointer',fontWeight:700,flexShrink:0}}>← 返回</button>
+          <div>
+            <h2 style={{fontWeight:800,color:'#1f2937',margin:0}}>🎤 發音測試</h2>
+            <p style={{color:'#6b7280',margin:'2px 0 0',fontSize:'13px'}}>{idx+1}/{PRONUNCIATION_SENTENCES.length} 句</p>
+          </div>
+        </div>
+
+        <div style={{background:'rgba(255,255,255,.96)',borderRadius:'22px',padding:'32px 24px',textAlign:'center',marginBottom:'16px',boxShadow:'0 10px 30px rgba(0,0,0,.15)'}}>
+          <div style={{fontSize:'13px',color:'#9ca3af',marginBottom:'6px'}}>📖 {s.zh}</div>
+          <h3 style={{fontSize:'clamp(16px,4vw,24px)',fontWeight:700,color:'#1f2937',lineHeight:1.5,marginBottom:'20px'}}>{s.en}</h3>
+          <div style={{display:'flex',justifyContent:'center',gap:'10px',flexWrap:'wrap',marginBottom:'16px'}}>
+            <button onClick={()=>speak(s.en)}
+              style={{display:'flex',alignItems:'center',gap:'6px',padding:'11px 20px',borderRadius:'12px',border:'2px solid #667eea',background:'white',color:'#667eea',fontWeight:700,cursor:'pointer'}}>
+              <I.Sound size={17}/> 聽標準發音
+            </button>
+            <button onClick={handleMic} disabled={recoding}
+              style={{display:'flex',alignItems:'center',gap:'6px',padding:'11px 20px',borderRadius:'12px',border:'none',color:'white',fontWeight:700,cursor:'pointer',
+                background:recoding?'#dc2626':'linear-gradient(135deg,#ef4444,#dc2626)',
+                animation:recoding?'pulse 1s infinite':'none'}}>
+              <I.Mic size={17}/> {recoding?'錄音中...':'開始說話'}
+            </button>
+          </div>
+          <div style={{display:'flex',justifyContent:'center',gap:'10px'}}>
+            <button onClick={()=>{setSpFB(null);setIdx(i=>Math.max(0,i-1));}} style={{padding:'8px 18px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>← 上一句</button>
+            <button onClick={()=>{setSpFB(null);setIdx(i=>Math.min(PRONUNCIATION_SENTENCES.length-1,i+1));}} style={{padding:'8px 18px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>下一句 →</button>
+          </div>
+        </div>
+
+        {spFB&&(
+          <div style={{background:'rgba(255,255,255,.96)',borderRadius:'20px',padding:'24px',textAlign:'center',marginBottom:'16px',boxShadow:'0 8px 24px rgba(0,0,0,.12)',animation:'slideIn .3s ease'}}>
+            <div style={{width:'110px',height:'110px',margin:'0 auto 16px',borderRadius:'50%',
+              background:`conic-gradient(${spFB.score>=80?'#10b981':spFB.score>=60?'#f59e0b':'#ef4444'} ${spFB.score*3.6}deg,#e5e7eb 0deg)`,
+              display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div style={{width:'82px',height:'82px',background:'white',borderRadius:'50%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:'28px',fontWeight:900,color:'#1f2937'}}>{spFB.score}</span>
+                <span style={{fontSize:'11px',color:'#9ca3af'}}>/ 100</span>
+              </div>
+            </div>
+            <div style={{background:'#f3f4f6',borderRadius:'10px',padding:'10px 14px',marginBottom:'12px',fontSize:'15px',color:'#374151',fontStyle:'italic'}}>"{spFB.text}"</div>
+            <div style={{padding:'10px 16px',borderRadius:'10px',fontWeight:700,
+              background:spFB.score>=80?'#d1fae5':spFB.score>=60?'#fef3c7':'#fee2e2',
+              color:spFB.score>=80?'#065f46':spFB.score>=60?'#92400e':'#991b1b'}}>
+              {spFB.score>=80?'🎉 太棒了！發音非常標準！':spFB.score>=60?'👍 不錯！繼續練習！':'💪 放慢速度，再試一次！'}
+            </div>
+          </div>
+        )}
+
+        <div style={{background:'rgba(255,255,255,.15)',borderRadius:'16px',padding:'16px 20px'}}>
+          <h4 style={{color:'white',fontWeight:700,marginBottom:'10px'}}>💡 發音技巧</h4>
+          {['先聽一遍，再模仿語調和節奏','注意英文的「連音」，自然地說出來','放慢速度，每個音節清楚發出','多重複練習，肌肉記憶很重要'].map((t,i)=>(
+            <div key={i} style={{color:'rgba(255,255,255,.9)',fontSize:'13px',marginBottom:'5px',display:'flex',gap:'6px'}}>
+              <span>•</span><span>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Home ─── */
+const Home = ({profile, onLesson, onFreeChat, onPronunciation}) => {
+  const xpForLevel = l => l * 500;
+  const progress = () => {
+    const lo=xpForLevel(profile.level-1),hi=xpForLevel(profile.level);
+    return Math.min(((profile.totalXP-lo)/(hi-lo))*100,100);
+  };
+  const typeIcon = type => {
+    const m={conversation:<I.Chat size={22}/>,vocabulary:<I.Book size={22}/>,listening:<I.Sound size={22}/>,
+      pronunciation:<I.Mic size={22}/>,news:<I.News size={22}/>,media:<I.Film size={22}/>,
+      reading:<I.Globe size={22}/>,writing:<I.Book size={22}/>};
+    return m[type]||<I.Book size={22}/>;
+  };
+
+  return(
+    <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'16px'}}>
+      <div style={{maxWidth:'960px',margin:'0 auto'}}>
         {/* Hero */}
-        <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'28px',padding:'50px 30px',textAlign:'center',marginBottom:'24px',boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
-          <div style={{fontSize:'52px',animation:'float 3s ease-in-out infinite'}}>✨</div>
-          <h1 style={{fontSize:'clamp(32px,6vw,52px)',fontWeight:900,background:'linear-gradient(135deg,#667eea,#764ba2)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',margin:'12px 0 8px'}}>AI English Master</h1>
-          <p style={{fontSize:'18px',color:'#6b7280',marginBottom:'24px'}}>AI 互動式英語學習平台</p>
-          <div style={{display:'inline-flex',alignItems:'center',gap:'10px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',padding:'12px 28px',borderRadius:'50px',fontWeight:700,fontSize:'18px',boxShadow:'0 8px 24px rgba(245,158,11,0.35)'}}>
-            <Icons.Trophy size={22}/> Level {profile.level}
+        <div style={{background:'rgba(255,255,255,.96)',borderRadius:'26px',padding:'44px 24px',textAlign:'center',marginBottom:'20px',boxShadow:'0 20px 60px rgba(0,0,0,.15)'}}>
+          <div style={{fontSize:'48px',animation:'float 3s ease-in-out infinite',display:'inline-block'}}>✨</div>
+          <h1 style={{fontSize:'clamp(28px,6vw,52px)',fontWeight:900,background:'linear-gradient(135deg,#667eea,#764ba2)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',margin:'12px 0 6px'}}>AI English Master</h1>
+          <p style={{fontSize:'17px',color:'#6b7280',marginBottom:'20px'}}>AI 互動式英語學習平台</p>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'8px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',padding:'10px 24px',borderRadius:'50px',fontWeight:700,fontSize:'17px',boxShadow:'0 8px 24px rgba(245,158,11,.3)'}}>
+            <I.Trophy size={20}/> Level {profile.level}
           </div>
         </div>
 
         {/* Stats */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px',marginBottom:'24px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',marginBottom:'20px'}}>
           {[
-            {icon:<Icons.Zap size={30} style={{color:'#f59e0b'}}/>,  val:profile.totalXP, lbl:'Total XP'},
-            {icon:<Icons.Star size={30} style={{color:'#ef4444'}}/>,  val:profile.streak,  lbl:'🔥 連續天數'},
-            {icon:<Icons.Award size={30} style={{color:'#10b981'}}/>, val:profile.completedLessons.length, lbl:'完成關卡'},
+            {icon:<I.Zap size={28} style={{color:'#f59e0b'}}/>, val:profile.totalXP, lbl:'Total XP'},
+            {icon:<I.Star size={28} style={{color:'#ef4444'}}/>,  val:profile.streak,  lbl:'🔥 連續天數'},
+            {icon:<I.Award size={28} style={{color:'#10b981'}}/>, val:profile.completedLessons.length, lbl:'完成關卡'},
           ].map((s,i)=>(
-            <div key={i} style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',padding:'24px 16px',textAlign:'center',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
+            <div key={i} style={{background:'rgba(255,255,255,.96)',borderRadius:'18px',padding:'20px 12px',textAlign:'center',boxShadow:'0 8px 24px rgba(0,0,0,.08)'}}>
               {s.icon}
-              <div style={{fontSize:'32px',fontWeight:800,color:'#1f2937',marginTop:'8px'}}>{s.val}</div>
-              <div style={{fontSize:'13px',color:'#6b7280',marginTop:'4px'}}>{s.lbl}</div>
+              <div style={{fontSize:'30px',fontWeight:800,color:'#1f2937',marginTop:'6px'}}>{s.val}</div>
+              <div style={{fontSize:'12px',color:'#6b7280',marginTop:'3px'}}>{s.lbl}</div>
             </div>
           ))}
         </div>
 
         {/* XP Bar */}
-        <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'18px',padding:'20px 24px',marginBottom:'28px',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',fontWeight:600,marginBottom:'8px',color:'#1f2937'}}>
+        <div style={{background:'rgba(255,255,255,.96)',borderRadius:'16px',padding:'18px 20px',marginBottom:'20px',boxShadow:'0 8px 24px rgba(0,0,0,.08)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontWeight:600,marginBottom:'6px',color:'#1f2937',fontSize:'14px'}}>
             <span>Level {profile.level} → {profile.level+1}</span>
             <span>{Math.round(progress())}%</span>
           </div>
-          <div style={{height:'18px',background:'#e5e7eb',borderRadius:'9px',overflow:'hidden'}}>
-            <div style={{height:'100%',width:`${progress()}%`,background:'linear-gradient(90deg,#10b981,#059669)',transition:'width 0.6s ease',boxShadow:'0 0 12px rgba(16,185,129,0.5)'}}/>
+          <div style={{height:'16px',background:'#e5e7eb',borderRadius:'8px',overflow:'hidden'}}>
+            <div style={{height:'100%',width:`${progress()}%`,background:'linear-gradient(90deg,#10b981,#059669)',transition:'width .6s ease'}}/>
           </div>
-          <div style={{textAlign:'right',fontSize:'13px',color:'#9ca3af',marginTop:'6px'}}>下一級需要 {xpForLevel(profile.level)} XP</div>
         </div>
 
-        {/* Quick Actions */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'28px'}}>
-          <button onClick={()=>{setMsgs([]);setSpFB(null);setInput('');setView('freeChat');}}
-            style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',borderRadius:'18px',padding:'20px',fontSize:'16px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',boxShadow:'0 8px 24px rgba(102,126,234,0.4)'}}>
-            <Icons.Chat size={22}/> 自由對話練習
+        {/* Quick actions */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'24px'}}>
+          <button onClick={onFreeChat} style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',borderRadius:'16px',padding:'18px',fontSize:'15px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',boxShadow:'0 8px 24px rgba(102,126,234,.35)'}}>
+            <I.Chat size={20}/> 自由對話
           </button>
-          <button onClick={()=>{setSpFB(null);setView('pronunciation');}}
-            style={{background:'rgba(255,255,255,0.96)',border:'2px solid #e5e7eb',borderRadius:'18px',padding:'20px',fontSize:'16px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',color:'#1f2937',boxShadow:'0 8px 24px rgba(0,0,0,0.08)'}}>
-            <Icons.Mic size={22}/> 發音測試
+          <button onClick={onPronunciation} style={{background:'rgba(255,255,255,.96)',border:'2px solid #e5e7eb',borderRadius:'16px',padding:'18px',fontSize:'15px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',color:'#1f2937',boxShadow:'0 8px 24px rgba(0,0,0,.06)'}}>
+            <I.Mic size={20}/> 發音測試
           </button>
         </div>
 
         {/* Learning Path */}
-        <h2 style={{display:'flex',alignItems:'center',gap:'12px',fontSize:'26px',fontWeight:800,color:'white',marginBottom:'20px'}}>
-          <Icons.Trend size={26}/> 學習路徑
+        <h2 style={{display:'flex',alignItems:'center',gap:'10px',fontSize:'24px',fontWeight:800,color:'white',marginBottom:'18px'}}>
+          <I.Trend size={22}/> 學習路徑
         </h2>
 
         {Object.entries(LESSONS).map(([key,path])=>(
-          <div key={key} style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',overflow:'hidden',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.1)'}}>
-            <div style={{background:path.color,padding:'18px 24px',color:'white'}}>
-              <h3 style={{fontWeight:800,fontSize:'20px',margin:0}}>{path.emoji} {path.title}</h3>
+          <div key={key} style={{background:'rgba(255,255,255,.96)',borderRadius:'18px',overflow:'hidden',marginBottom:'18px',boxShadow:'0 10px 30px rgba(0,0,0,.09)'}}>
+            <div style={{background:path.color,padding:'16px 22px',color:'white'}}>
+              <h3 style={{fontWeight:800,fontSize:'18px',margin:0}}>{path.emoji} {path.title}</h3>
             </div>
-            <div style={{padding:'20px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:'12px'}}>
+            <div style={{padding:'16px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:'10px'}}>
               {path.lessons.map((ls,idx)=>{
-                const done   = profile.completedLessons.includes(ls.id);
-                const prevId = idx>0 ? path.lessons[idx-1].id : null;
-                const locked = prevId && !profile.completedLessons.includes(prevId);
-                return (
-                  <div key={ls.id} onClick={()=>!locked && openLesson(ls,key)}
-                    style={{
-                      background: done ? 'linear-gradient(135deg,#d1fae5,#a7f3d0)' : 'white',
-                      border: `2px solid ${done ? '#10b981' : locked ? '#e5e7eb' : '#e5e7eb'}`,
-                      borderRadius:'14px',padding:'16px',
-                      cursor: locked ? 'not-allowed' : 'pointer',
-                      opacity: locked ? 0.5 : 1,
-                      display:'flex',alignItems:'center',gap:'12px',
-                      transition:'all 0.2s ease',
-                    }}
-                    onMouseEnter={e=>{ if(!locked) e.currentTarget.style.transform='translateY(-3px)'; }}
-                    onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; }}
+                const done=profile.completedLessons.includes(ls.id);
+                const prevId=idx>0?path.lessons[idx-1].id:null;
+                const locked=prevId&&!profile.completedLessons.includes(prevId);
+                return(
+                  <div key={ls.id} onClick={()=>!locked&&onLesson(ls,key)}
+                    style={{background:done?'linear-gradient(135deg,#d1fae5,#a7f3d0)':'white',border:`2px solid ${done?'#10b981':'#e5e7eb'}`,borderRadius:'12px',padding:'14px',cursor:locked?'not-allowed':'pointer',opacity:locked?.5:1,display:'flex',alignItems:'center',gap:'10px',transition:'all .2s'}}
+                    onMouseEnter={e=>{ if(!locked) e.currentTarget.style.transform='translateY(-2px)'; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.transform=''; }}
                   >
-                    <div style={{width:'44px',height:'44px',background: locked ? '#9ca3af' : `linear-gradient(135deg,${path.color},${path.color}aa)`,borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}>
-                      {locked ? <Icons.Lock size={20}/> : typeIcon(ls.type)}
+                    <div style={{width:'40px',height:'40px',background:locked?'#9ca3af':`linear-gradient(135deg,${path.color},${path.color}bb)`,borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}>
+                      {locked?<I.Lock size={18}/>:typeIcon(ls.type)}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:'15px',color:'#1f2937',marginBottom:'4px'}}>{ls.title}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:'4px',color:'#f59e0b',fontWeight:600,fontSize:'13px'}}>
-                        <Icons.Zap size={13}/>{ls.xp} XP
+                      <div style={{fontWeight:700,fontSize:'14px',color:'#1f2937',marginBottom:'3px'}}>{ls.title}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:'3px',color:'#f59e0b',fontWeight:600,fontSize:'12px'}}>
+                        <I.Zap size={12}/>{ls.xp} XP
                       </div>
                     </div>
-                    {done && <div style={{width:'28px',height:'28px',background:'#10b981',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}><Icons.Check size={16}/></div>}
-                    {!done && !locked && <Icons.Arrow size={18} style={{color:'#9ca3af',flexShrink:0}}/>}
+                    {done&&<div style={{width:'24px',height:'24px',background:'#10b981',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}><I.Check size={14}/></div>}
+                    {!done&&!locked&&<I.Arrow size={16} style={{color:'#9ca3af',flexShrink:0}}/>}
                   </div>
                 );
               })}
@@ -332,221 +1196,49 @@ const App = () => {
       </div>
     </div>
   );
-
-  /* ---- CHAT SHARED ---- */
-  const ChatView = ({title, subtitle, onBack, onComplete, ctx}) => (
-    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f3f4f6'}}>
-      {/* Header */}
-      <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',padding:'16px 20px',display:'flex',alignItems:'center',gap:'14px',flexWrap:'wrap',gap:'10px',flexShrink:0}}>
-        <button onClick={onBack}
-          style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',color:'white',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontWeight:600,fontSize:'14px'}}>
-          ← 返回
-        </button>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:800,fontSize:'18px'}}>{title}</div>
-          {subtitle && <div style={{fontSize:'13px',opacity:0.85,marginTop:'2px'}}>{subtitle}</div>}
-        </div>
-        {onComplete && (
-          <button onClick={onComplete}
-            style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',color:'white',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontWeight:600,fontSize:'14px'}}>
-            ✅ 完成課程
-          </button>
-        )}
-      </div>
-
-      {/* Messages */}
-      <div style={{flex:1,overflowY:'auto',padding:'20px',display:'flex',flexDirection:'column',gap:'16px'}}>
-        {msgs.length===0 && (
-          <div style={{alignSelf:'flex-start',maxWidth:'80%'}}>
-            <div style={{background:'white',padding:'16px 20px',borderRadius:'20px 20px 20px 4px',boxShadow:'0 2px 10px rgba(0,0,0,0.08)',lineHeight:1.6,whiteSpace:'pre-wrap',position:'relative'}}>
-              Hi! I'm your AI English partner 🤖<br/>你好！我是你的 AI 英語夥伴！<br/><br/>試著用英文跟我說話吧～
-              <button onClick={()=>speak("Hi! I'm your AI English partner. Let's practice English together!")}
-                style={{position:'absolute',top:'8px',right:'8px',background:'rgba(102,126,234,0.1)',border:'none',padding:'4px',borderRadius:'6px',cursor:'pointer',color:'#667eea'}}>
-                <Icons.Sound size={14}/>
-              </button>
-            </div>
-          </div>
-        )}
-        {msgs.map((m,i)=>(
-          <div key={i} className="msg-animate" style={{alignSelf: m.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'80%'}}>
-            <div style={{
-              background: m.role==='user' ? 'linear-gradient(135deg,#667eea,#764ba2)' : 'white',
-              color: m.role==='user' ? 'white' : '#1f2937',
-              padding:'14px 18px',
-              borderRadius: m.role==='user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
-              boxShadow:'0 2px 10px rgba(0,0,0,0.08)',
-              lineHeight:1.6,
-              whiteSpace:'pre-wrap',
-              position:'relative',
-              paddingRight: m.role==='assistant' ? '36px' : '18px',
-            }}>
-              {m.content}
-              {m.role==='assistant' && (
-                <button onClick={()=>speak(m.content)}
-                  style={{position:'absolute',top:'8px',right:'8px',background:'rgba(102,126,234,0.1)',border:'none',padding:'4px',borderRadius:'6px',cursor:'pointer',color:'#667eea'}}>
-                  <Icons.Sound size={14}/>
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-        {busy && (
-          <div style={{alignSelf:'flex-start'}}>
-            <div style={{background:'white',padding:'16px 20px',borderRadius:'20px',boxShadow:'0 2px 10px rgba(0,0,0,0.08)',display:'flex',gap:'6px',alignItems:'center'}}>
-              {[0,1,2].map(i=><span key={i} className="dot" style={{width:'8px',height:'8px',background:'#9ca3af',borderRadius:'50%',display:'inline-block',animationDelay:`${i*0.16}s`}}/>)}
-            </div>
-          </div>
-        )}
-        <div ref={msgEnd}/>
-      </div>
-
-      {/* Input */}
-      <div style={{background:'white',borderTop:'1px solid #e5e7eb',padding:'16px 20px',flexShrink:0}}>
-        {spFB && (
-          <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'10px',padding:'12px 16px',marginBottom:'12px',display:'flex',alignItems:'center',gap:'10px'}}>
-            <Icons.Mic size={16} style={{color:'#10b981',flexShrink:0}}/>
-            <div>
-              <span style={{fontWeight:700,color:'#065f46'}}>發音評分: {spFB.score}/100 </span>
-              <span style={{color:'#374151',fontStyle:'italic'}}>"{spFB.text}"</span>
-            </div>
-          </div>
-        )}
-        <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-          <button onClick={startRec} disabled={recoding}
-            style={{width:'48px',height:'48px',borderRadius:'50%',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0,
-              background: recoding ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#ef4444,#dc2626)',
-              animation: recoding ? 'pulse 1s infinite' : 'none',
-              boxShadow: recoding ? '0 0 0 0 rgba(239,68,68,0.7)' : 'none',
-            }}>
-            <Icons.Mic size={20}/>
-          </button>
-          <input value={input} onChange={e=>setInput(e.target.value)}
-            onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey && input.trim()){ sendAI(input,ctx); setInput(''); }}}
-            placeholder="輸入訊息，按 Enter 發送..."
-            style={{flex:1,padding:'13px 18px',border:'2px solid #e5e7eb',borderRadius:'24px',fontSize:'15px',outline:'none',fontFamily:'inherit'}}
-          />
-          <button onClick={()=>{ if(input.trim()){ sendAI(input,ctx); setInput(''); }}} disabled={busy || !input.trim()}
-            style={{padding:'13px 22px',borderRadius:'24px',border:'none',cursor:'pointer',fontWeight:700,fontSize:'15px',color:'white',
-              background: (busy||!input.trim()) ? '#9ca3af' : 'linear-gradient(135deg,#667eea,#764ba2)',
-              transition:'background 0.2s'}}>
-            發送
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  /* ---- LESSON ---- */
-  const LessonView = () => (
-    <ChatView
-      title={lesson?.title}
-      subtitle={lesson?.topics.join(' · ')}
-      onBack={()=>setView('home')}
-      onComplete={()=>lesson && finishLesson(lesson.id, lesson.xp)}
-      ctx={lesson}
-    />
-  );
-
-  /* ---- FREE CHAT ---- */
-  const FreeChatView = () => (
-    <ChatView
-      title="🗣️ 自由對話練習"
-      subtitle="和 AI 練習任何話題，自然提升英語能力"
-      onBack={()=>setView('home')}
-      ctx={null}
-    />
-  );
-
-  /* ---- PRONUNCIATION ---- */
-  const PronunciationView = () => {
-    const s = PRACTICE_SENTENCES[practiceIdx];
-    return (
-      <div style={{background:'linear-gradient(135deg,#667eea,#764ba2)',minHeight:'100vh',padding:'20px'}}>
-        <div style={{maxWidth:'700px',margin:'0 auto'}}>
-          <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'20px',padding:'20px 24px',marginBottom:'20px',display:'flex',alignItems:'center',gap:'14px',boxShadow:'0 8px 24px rgba(0,0,0,0.1)'}}>
-            <button onClick={()=>setView('home')}
-              style={{background:'linear-gradient(135deg,#667eea,#764ba2)',border:'none',color:'white',padding:'10px 18px',borderRadius:'10px',cursor:'pointer',fontWeight:700}}>
-              ← 返回
-            </button>
-            <div>
-              <h2 style={{fontWeight:800,color:'#1f2937',margin:0}}>🎤 發音測試</h2>
-              <p style={{color:'#6b7280',margin:'4px 0 0',fontSize:'14px'}}>說英文，獲得即時評分</p>
-            </div>
-          </div>
-
-          {/* Sentence Card */}
-          <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'24px',padding:'40px 30px',textAlign:'center',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.15)'}}>
-            <div style={{fontSize:'14px',color:'#9ca3af',marginBottom:'8px'}}>📖 跟讀練習 {practiceIdx+1}/{PRACTICE_SENTENCES.length}</div>
-            <h3 style={{fontSize:'clamp(18px,4vw,26px)',fontWeight:700,color:'#1f2937',lineHeight:1.4,marginBottom:'8px'}}>{s.en}</h3>
-            <div style={{fontSize:'14px',color:'#6b7280',marginBottom:'24px'}}>{s.zh}</div>
-            <div style={{display:'flex',justifyContent:'center',gap:'12px',marginBottom:'24px',flexWrap:'wrap'}}>
-              <button onClick={()=>speak(s.en)}
-                style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 24px',borderRadius:'12px',border:'2px solid #667eea',background:'white',color:'#667eea',fontWeight:700,cursor:'pointer',fontSize:'15px'}}>
-                <Icons.Sound size={18}/> 聽標準發音
-              </button>
-              <button onClick={startRec} disabled={recoding}
-                style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 24px',borderRadius:'12px',border:'none',background: recoding ? '#ef4444' : 'linear-gradient(135deg,#ef4444,#dc2626)',color:'white',fontWeight:700,cursor:'pointer',fontSize:'15px',animation: recoding ? 'pulse 1s infinite' : 'none'}}>
-                <Icons.Mic size={18}/> {recoding ? '錄音中...' : '開始說話'}
-              </button>
-            </div>
-            <div style={{display:'flex',justifyContent:'center',gap:'12px'}}>
-              <button onClick={()=>{ setSpFB(null); setPracticeIdx(i=>Math.max(0,i-1)); }}
-                style={{padding:'8px 20px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>
-                ← 上一句
-              </button>
-              <button onClick={()=>{ setSpFB(null); setPracticeIdx(i=>Math.min(PRACTICE_SENTENCES.length-1,i+1)); }}
-                style={{padding:'8px 20px',borderRadius:'10px',border:'2px solid #e5e7eb',background:'white',cursor:'pointer',fontWeight:600,color:'#6b7280'}}>
-                下一句 →
-              </button>
-            </div>
-          </div>
-
-          {/* Score Result */}
-          {spFB && (
-            <div style={{background:'rgba(255,255,255,0.96)',borderRadius:'24px',padding:'30px',textAlign:'center',marginBottom:'20px',boxShadow:'0 10px 30px rgba(0,0,0,0.15)',animation:'slideIn 0.4s ease'}}>
-              <div style={{fontSize:'16px',fontWeight:700,color:'#1f2937',marginBottom:'16px'}}>發音評分結果</div>
-              <div style={{width:'120px',height:'120px',margin:'0 auto 16px',borderRadius:'50%',
-                background:`conic-gradient(${spFB.score>=80?'#10b981':spFB.score>=60?'#f59e0b':'#ef4444'} ${spFB.score*3.6}deg, #e5e7eb 0deg)`,
-                display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{width:'90px',height:'90px',background:'white',borderRadius:'50%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                  <span style={{fontSize:'34px',fontWeight:900,color:'#1f2937'}}>{spFB.score}</span>
-                  <span style={{fontSize:'12px',color:'#9ca3af'}}>/ 100</span>
-                </div>
-              </div>
-              <div style={{background:'#f3f4f6',borderRadius:'12px',padding:'12px',marginBottom:'16px',fontSize:'16px',color:'#374151',fontStyle:'italic'}}>
-                "{spFB.text}"
-              </div>
-              <div style={{
-                padding:'12px 20px',borderRadius:'12px',fontWeight:700,fontSize:'15px',
-                background: spFB.score>=80?'#d1fae5':spFB.score>=60?'#fef3c7':'#fee2e2',
-                color: spFB.score>=80?'#065f46':spFB.score>=60?'#92400e':'#991b1b'
-              }}>
-                {spFB.score>=80 ? '🎉 太棒了！發音非常標準！' : spFB.score>=60 ? '👍 不錯！繼續練習更好！' : '💪 再試一次，放慢速度！'}
-              </div>
-            </div>
-          )}
-
-          {/* Tips */}
-          <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'18px',padding:'20px 24px'}}>
-            <h4 style={{color:'white',fontWeight:700,marginBottom:'12px'}}>💡 發音技巧</h4>
-            {['放慢速度，清楚地發出每個音節','注意重音位置，英文有輕重音之分','先聽標準發音再模仿，多次練習','記得嘴型和舌頭的位置也很重要'].map((t,i)=>(
-              <div key={i} style={{color:'rgba(255,255,255,0.9)',fontSize:'14px',marginBottom:'6px',display:'flex',gap:'8px'}}>
-                <span>•</span><span>{t}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  if(view==='lesson')       return <LessonView/>;
-  if(view==='freeChat')     return <FreeChatView/>;
-  if(view==='pronunciation')return <PronunciationView/>;
-  return <Home/>;
 };
 
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
+/* ─── App Root ─── */
+const App = () => {
+  const [view,    setView]    = useState('home');
+  const [lesson,  setLesson]  = useState(null);
+  const [profile, setProfile] = useState({level:1,totalXP:0,streak:7,completedLessons:[]});
+
+  useEffect(()=>{
+    const s=localStorage.getItem('eng_v2');
+    if(s) try{setProfile(JSON.parse(s));}catch(e){}
+  },[]);
+
+  useEffect(()=>{ localStorage.setItem('eng_v2',JSON.stringify(profile)); },[profile]);
+
+  const addXP = useCallback(amt=>{
+    setProfile(p=>{
+      const nx=p.totalXP+amt;
+      let nl=p.level;
+      const xpForLevel=l=>l*500;
+      while(nx>=xpForLevel(nl)) nl++;
+      if(nl>p.level) setTimeout(()=>alert(`🎉 Level Up！恭喜升到 Level ${nl}！`),300);
+      return{...p,totalXP:nx,level:nl};
+    });
+  },[]);
+
+  const openLesson=(ls,tier)=>{ setLesson({...ls,tier}); setView('lesson'); };
+  const finishLesson=()=>{
+    if(lesson&&!profile.completedLessons.includes(lesson.id)){
+      setProfile(p=>({...p,completedLessons:[...p.completedLessons,lesson.id],streak:p.streak+1}));
+      addXP(lesson.xp);
+      setTimeout(()=>alert(`🎊 完成！+${lesson.xp} XP！`),100);
+    }
+    setView('home');
+  };
+
+  if(view==='lesson')        return <ChatView key={lesson?.id} lesson={lesson} onBack={()=>setView('home')} onFinish={finishLesson} addXP={addXP}/>;
+  if(view==='freeChat')      return <ChatView key="free" lesson={null} onBack={()=>setView('home')} addXP={addXP}/>;
+  if(view==='pronunciation') return <PronunciationView onBack={()=>setView('home')} addXP={addXP}/>;
+  return <Home profile={profile} onLesson={openLesson} onFreeChat={()=>setView('freeChat')} onPronunciation={()=>setView('pronunciation')}/>;
+};
+
+ReactDOM.render(React.createElement(App),document.getElementById('root'));
 </script>
 </body>
 </html>
